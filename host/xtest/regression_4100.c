@@ -1228,12 +1228,16 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 					 cktest_allowed_valid[0].mechanism,
 					 TEE_MODE_ENCRYPT);
 
+		/* Failure due to memory allocation is not a error case */
 		if (rv == CKR_DEVICE_MEMORY)
 			break;
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto bail;
 	}
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, n, >, 0))
+		goto bail;
 
 	Do_ADBG_Log("    created sessions count: %zu", n);
 
