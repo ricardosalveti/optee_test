@@ -21,6 +21,10 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := xtest
 LOCAL_SHARED_LIBRARIES := libteec
 
+ifeq ($(CFG_SECURE_KEY_SERVICES),y)
+LOCAL_SHARED_LIBRARIES += liboptee_cryptoki
+endif
+
 srcs := regression_1000.c
 
 ifeq ($(CFG_GP_SOCKETS),y)
@@ -56,6 +60,10 @@ ifeq ($(CFG_SECURE_DATA_PATH),y)
 srcs += sdp_basic.c
 endif
 
+ifeq ($(CFG_SECURE_KEY_SERVICES),y)
+srcs += regression_4100.c
+endif
+
 LOCAL_SRC_FILES := $(patsubst %,host/xtest/%,$(srcs))
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH)/host/xtest \
@@ -82,6 +90,10 @@ LOCAL_CFLAGS += -include conf.h
 LOCAL_CFLAGS += -pthread
 LOCAL_CFLAGS += -g3
 LOCAL_CFLAGS += -Wno-missing-field-initializers -Wno-format-zero-length
+
+ifeq ($(CFG_SECURE_KEY_SERVICES),y)
+LOCAL_CFLAGS += -DCFG_SECURE_KEY_SERVICES
+endif
 
 ## $(OPTEE_BIN) is the path of tee.bin like
 ## out/target/product/hikey/optee/arm-plat-hikey/core/tee.bin
