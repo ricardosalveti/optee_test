@@ -1241,6 +1241,15 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 
 	Do_ADBG_Log("    created sessions count: %zu", n);
 
+	/* Closing session with out bound and invalid IDs (or negative ID) */
+	rv = C_CloseSession(sessions[n - 1] + 1024);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_SESSION_HANDLE_INVALID);
+	rv = C_CloseSession(CK_INVALID_HANDLE);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_SESSION_HANDLE_INVALID);
+	rv = C_CloseSession(~0);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_SESSION_HANDLE_INVALID);
+
+	/* Closing each session: all related resources shall be free */
 	for (n = 0; n < ARRAY_SIZE(sessions); n++) {
 		if (sessions[n] == CK_INVALID_HANDLE)
 			continue;
