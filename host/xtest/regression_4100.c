@@ -1246,7 +1246,8 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 		sessions[n] = CK_INVALID_HANDLE;
 	}
 
-	rv = open_cipher_session(c, slot, sessions + n,
+	/* Open and close another session */
+	rv = open_cipher_session(c, slot, sessions,
 				 cktest_allowed_valid[0].attr_key,
 				 cktest_allowed_valid[0].attr_count,
 				 cktest_allowed_valid[0].mechanism,
