@@ -98,7 +98,7 @@ static CK_RV close_lib(void)
 static CK_RV init_lib_and_find_token_slot(CK_SLOT_ID *slot)
 {
 	CK_RV rv;
-	CK_SLOT_ID_PTR slots;
+	CK_SLOT_ID_PTR slots = NULL;
 	CK_ULONG count;
 
 	rv = C_Initialize(0);
