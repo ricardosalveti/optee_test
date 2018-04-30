@@ -24,6 +24,7 @@ set (SRC
 	benchmark_2000.c
 	regression_1000.c
 	regression_4000.c
+	regression_4100.c
 	regression_5000.c
 	regression_6000.c
 	regression_7000.c
@@ -55,7 +56,13 @@ endif()
 ################################################################################
 add_executable (${PROJECT_NAME} ${SRC})
 
-target_compile_options (${PROJECT_NAME} PRIVATE -include conf.h)
+target_compile_options (${PROJECT_NAME}
+	PRIVATE -include conf.h
+)
+
+set_target_properties(${PROJECT_NAME}
+	PROPERTIES COMPILE_FLAGS "-DCFG_SECURE_KEY_SERVICES"
+)
 
 target_include_directories(${PROJECT_NAME}
 	PRIVATE .
@@ -69,6 +76,7 @@ target_link_libraries (${PROJECT_NAME}
 	PRIVATE xtest-ta-headers
 	PRIVATE teec
 	PRIVATE m
+	PRIVATE optee_cryptoki
 )
 
 ################################################################################
