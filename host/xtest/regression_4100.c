@@ -480,7 +480,7 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	CK_RV rv;
 	CK_SLOT_ID slot;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE obj_hld;
+	CK_OBJECT_HANDLE obj_hdl;
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
@@ -500,16 +500,16 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	rv = C_GenerateKey(session, &mecha_generate_gensecret,
 			   cktest_generate_gensecret_object,
 			   ARRAY_SIZE(cktest_generate_gensecret_object),
-			   &obj_hld);
+			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
-	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism, obj_hld);
+	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism, obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
 					  CKR_KEY_FUNCTION_NOT_PERMITTED))
 		goto bail;
 
-	rv = C_DestroyObject(session, obj_hld);
+	rv = C_DestroyObject(session, obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
@@ -523,21 +523,21 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	rv = C_GenerateKey(session, &mecha_generate_gensecret,
 			   cktest_generate_gensecret_object_error1,
 			   ARRAY_SIZE(cktest_generate_gensecret_object_error1),
-			   &obj_hld);
+			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 		goto bail;
 
 	rv = C_GenerateKey(session, &mecha_generate_gensecret,
 			   cktest_generate_gensecret_object_error2,
 			   ARRAY_SIZE(cktest_generate_gensecret_object_error2),
-			   &obj_hld);
+			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 		goto bail;
 
 	rv = C_GenerateKey(session, &mecha_generate_gensecret,
 			   cktest_generate_gensecret_object_error3,
 			   ARRAY_SIZE(cktest_generate_gensecret_object_error3),
-			   &obj_hld);
+			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 		goto bail;
 
@@ -552,12 +552,12 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	rv = C_GenerateKey(session, &mecha_generate_aes_generic,
 			   cktest_generate_aes_object,
 			   ARRAY_SIZE(cktest_generate_aes_object),
-			   &obj_hld);
+			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 
-	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism, obj_hld);
+	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism, obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
@@ -565,7 +565,7 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
-	rv = C_DestroyObject(session, obj_hld);
+	rv = C_DestroyObject(session, obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
@@ -605,7 +605,7 @@ static void test_create_destroy_single_object(ADBG_Case_t *c, int persistent)
 	CK_RV rv;
 	CK_SLOT_ID slot;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE obj_hld;
+	CK_OBJECT_HANDLE obj_hdl;
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
@@ -619,16 +619,16 @@ static void test_create_destroy_single_object(ADBG_Case_t *c, int persistent)
 	if (persistent)
 		rv = C_CreateObject(session, cktest_token_object,
 				    ARRAY_SIZE(cktest_token_object),
-				    &obj_hld);
+				    &obj_hdl);
 	else
 		rv = C_CreateObject(session, cktest_session_object,
 				    ARRAY_SIZE(cktest_session_object),
-				    &obj_hld);
+				    &obj_hdl);
 
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
-	rv = C_DestroyObject(session, obj_hld);
+	rv = C_DestroyObject(session, obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
@@ -646,7 +646,7 @@ static void test_create_destroy_session_objects(ADBG_Case_t *c)
 	CK_RV rv;
 	CK_SLOT_ID slot;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE obj_hld[512];
+	CK_OBJECT_HANDLE obj_hdl[512];
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 	size_t n;
 
@@ -658,10 +658,10 @@ static void test_create_destroy_session_objects(ADBG_Case_t *c)
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
-	for (n = 0; n < ARRAY_SIZE(obj_hld); n++) {
+	for (n = 0; n < ARRAY_SIZE(obj_hdl); n++) {
 		rv = C_CreateObject(session, cktest_session_object,
 				    ARRAY_SIZE(cktest_session_object),
-				    obj_hld + n);
+				    obj_hdl + n);
 
 		if (rv == CKR_DEVICE_MEMORY)
 			break;
@@ -683,7 +683,7 @@ static void test_create_destroy_session_objects(ADBG_Case_t *c)
 
 	rv = C_CreateObject(session, cktest_session_object,
 			    ARRAY_SIZE(cktest_session_object),
-			    obj_hld);
+			    obj_hdl);
 
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
