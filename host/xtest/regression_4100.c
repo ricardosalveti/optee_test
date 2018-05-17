@@ -1286,6 +1286,393 @@ bail:
 	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
 }
 
+static CK_ATTRIBUTE cktest_object_pers_aes_dec[] = {
+	{ CKA_DECRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+};
+
+static CK_ATTRIBUTE cktest_object_pers_aes_enc[] = {
+	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+};
+
+static CK_ATTRIBUTE cktest_object_aes_dec[]  = {
+	{ CKA_DECRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+};
+
+static CK_ATTRIBUTE cktest_object_aes_enc[] = {
+	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+};
+
+static CK_ATTRIBUTE cktest_findobj_aes_dec[] = {
+	{ CKA_DECRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+};
+
+static CK_ATTRIBUTE cktest_findobj_aes_enc[] = {
+	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+};
+
+static CK_ATTRIBUTE cktest_findobj_pers_aes_enc[] = {
+	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+};
+
+static CK_ATTRIBUTE cktest_findobj_sess_aes_enc[] = {
+	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN,	&(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+};
+
+static CK_ATTRIBUTE cktest_findobj_pers_aes[] = {
+	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+};
+
+static CK_ATTRIBUTE cktest_findobj_no_class[] = {
+	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+};
+
+
+static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
+{
+	uint32_t rv;
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+	CK_OBJECT_HANDLE obj_hdl = CK_INVALID_HANDLE;
+	CK_ULONG count = 1;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		return;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
+			    ARRAY_SIZE(cktest_findobj_pers_aes));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+
+	while (1) {
+		rv = C_FindObjects(session, &obj_hdl, 1, &count);
+		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+			goto bail;
+		if (!count)
+			break;
+
+		rv = C_DestroyObject(session, obj_hdl);
+		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	}
+
+	rv = C_FindObjectsFinal(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+
+bail:
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+}
+
+static void xtest_tee_test_4114(ADBG_Case_t *c)
+{
+	CK_RV rv;
+	CK_SLOT_ID slot;
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_OBJECT_HANDLE obj_hdl[10];
+	CK_OBJECT_HANDLE obj_found[10];
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+	CK_ULONG hdl_count;
+	size_t n;
+
+	for (n = 0; n < ARRAY_SIZE(obj_hdl); n++)
+		obj_hdl[n] = CK_INVALID_HANDLE;
+	for (n = 0; n < ARRAY_SIZE(obj_found); n++)
+		obj_found[n] = CK_INVALID_HANDLE;
+
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		return;
+
+	/*
+	 * Sub test: create persistent and session objects and find them
+	 */
+	Do_ADBG_BeginSubCase(c, "Find created AES key objects");
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail0;
+
+	rv = C_CreateObject(session, cktest_object_aes_dec,
+			    ARRAY_SIZE(cktest_object_aes_dec),
+			    &obj_hdl[0]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_CreateObject(session, cktest_object_aes_enc,
+			    ARRAY_SIZE(cktest_object_aes_enc),
+			    &obj_hdl[1]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_CreateObject(session, cktest_object_pers_aes_dec,
+			    ARRAY_SIZE(cktest_object_pers_aes_dec),
+			    &obj_hdl[2]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_CreateObject(session, cktest_object_pers_aes_enc,
+			    ARRAY_SIZE(cktest_object_pers_aes_enc),
+			    &obj_hdl[3]);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_aes_dec,
+				ARRAY_SIZE(cktest_findobj_aes_dec));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 2) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[0]) ||
+				 (obj_found[0] == obj_hdl[2])) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[1] == obj_hdl[0]) ||
+				 (obj_found[1] == obj_hdl[2])))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	Do_ADBG_EndSubCase(c, NULL);
+	/*
+	 * Sub test: again but get handles one by one
+	 */
+	Do_ADBG_BeginSubCase(c, "Find one by one created AES key objects");
+
+	rv = C_FindObjectsInit(session, cktest_findobj_aes_enc,
+				ARRAY_SIZE(cktest_findobj_aes_enc));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjects(session, obj_found, 1, &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[1]) ||
+				 (obj_found[0] == obj_hdl[3])))
+		goto bail;
+
+	rv = C_FindObjects(session, &obj_found[1], 1, &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[1] == obj_hdl[1]) ||
+				 (obj_found[1] == obj_hdl[3])) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[1] != obj_found[0])))
+		goto bail;
+
+	rv = C_FindObjects(session, obj_found, 1, &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 0))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	Do_ADBG_EndSubCase(c, NULL);
+	/*
+	 * Sub test: search for a persistent object only
+	 */
+	Do_ADBG_BeginSubCase(c, "Find persistent objects");
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes_enc,
+				ARRAY_SIZE(cktest_findobj_pers_aes_enc));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[3])))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	Do_ADBG_EndSubCase(c, NULL);
+	/*
+	 * Sub test: search for a session object only
+	 */
+	Do_ADBG_BeginSubCase(c, "Find session objects");
+
+	rv = C_FindObjectsInit(session, cktest_findobj_sess_aes_enc,
+				ARRAY_SIZE(cktest_findobj_sess_aes_enc));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
+	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[1])))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	Do_ADBG_EndSubCase(c, NULL);
+	/*
+	 * Sub test: search object from a brand new session
+	 */
+	Do_ADBG_BeginSubCase(c, "Find object from a new session");
+
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail0;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_sess_aes_enc,
+				ARRAY_SIZE(cktest_findobj_sess_aes_enc));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 0))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
+				ARRAY_SIZE(cktest_findobj_pers_aes));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 2))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	Do_ADBG_EndSubCase(c, NULL);
+	/*
+	 * Sub test: finalize search without getting the handles found
+	 */
+	Do_ADBG_BeginSubCase(c, "Initiate and finalize straight a search");
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
+				ARRAY_SIZE(cktest_findobj_pers_aes));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	Do_ADBG_EndSubCase(c, NULL);
+	/*
+	 * Sub test: invalid call cases
+	 */
+	Do_ADBG_BeginSubCase(c, "Various invalid invocation cases");
+
+	rv = C_FindObjectsFinal(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OPERATION_NOT_INITIALIZED);
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
+				ARRAY_SIZE(cktest_findobj_pers_aes));
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		goto bail;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
+				ARRAY_SIZE(cktest_findobj_pers_aes));
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK);
+
+	rv = C_FindObjectsFinal(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+
+	rv = C_FindObjectsInit(session, cktest_findobj_no_class,
+				ARRAY_SIZE(cktest_findobj_no_class));
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK);
+
+	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
+				ARRAY_SIZE(cktest_findobj_pers_aes));
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+
+	/*
+	 * Intentianlly do not finalize the active object search. It should
+	 * be released together with the session closure.
+	 */
+bail:
+	/* TODO: destroy persistent objects!!! */
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+
+bail0:
+	destroy_persistent_objects(c, slot);
+
+	rv = close_lib();
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+
+	Do_ADBG_EndSubCase(c, NULL);
+}
+
+
 ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
 		"Initialize and close Cryptoki library");
 ADBG_CASE_DEFINE(regression, 4102, xtest_tee_test_4102,
@@ -1312,3 +1699,5 @@ ADBG_CASE_DEFINE(regression, 4112, xtest_tee_test_4112,
 		"Compliance of AES CCM/GCM ciphering processings");
 ADBG_CASE_DEFINE(regression, 4113, xtest_tee_test_4113, /*  TODO: rename 4110 */
 		"Check operations release at session closure");
+ADBG_CASE_DEFINE(regression, 4114, xtest_tee_test_4114,
+		"Object searches");
