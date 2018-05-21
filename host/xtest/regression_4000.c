@@ -3428,7 +3428,7 @@ void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot)
 	for (n = 0; n < ARRAY_SIZE(ae_cases); n++) {
 		CK_ATTRIBUTE_PTR ck_key1;
 		CK_MECHANISM_PTR mechanism;
-		CK_ULONG attr_count;
+		CK_ULONG attr_count = 0;
 		size_t i;
 
 		mechanism = NULL;
