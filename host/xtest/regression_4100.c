@@ -493,9 +493,9 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 
 	/*
 	 * Generate a Generic Secret object.
-	 * Try to decrypt with it, it should fail...
+	 * Try to encrpyt with, it should fail...
 	 */
-	Do_ADBG_BeginSubCase(c, "Generate generic secret");
+	Do_ADBG_BeginSubCase(c, "Generate generic secret and do AES with");
 
 	rv = C_GenerateKey(session, &mecha_generate_gensecret,
 			   cktest_generate_gensecret_object,
@@ -545,9 +545,9 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 
 	/*
 	 * Generate a 128bit AES symmetric key
-	 * Try to decrypt with it, it should succeed.
+	 * Try to encrypt with, it should succeed.
 	 */
-	Do_ADBG_BeginSubCase(c, "Generate AES secret key and decrypt with");
+	Do_ADBG_BeginSubCase(c, "Generate AES secret key and encrypt with");
 
 	rv = C_GenerateKey(session, &mecha_generate_aes_generic,
 			   cktest_generate_aes_object,
