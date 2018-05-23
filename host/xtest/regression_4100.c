@@ -319,6 +319,7 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 	CK_TOKEN_INFO token_info;
 	char pin0[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 	char pin1[] = { 0, 1, 2, 3, 0, 5, 6, 7, 8, 9, 10 };
+	char pin2[] = { 0, 1, 2, 3, 4, 5, 6, 0, 8 };
 	char label[] = "sks test token";
 	char label32[32];
 
@@ -342,8 +343,15 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 	if (token_info.flags & CKF_TOKEN_INITIALIZED) {
 
 		// "Token is already initialized.\n"
+		// TODO: skip this if token is about to lock
 
 		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin1, sizeof(pin1),
+				 (CK_UTF8CHAR_PTR)label32);
+		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
+			goto bail;
+
+
+		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin2, sizeof(pin2),
 				 (CK_UTF8CHAR_PTR)label32);
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 			goto bail;
