@@ -106,7 +106,7 @@ static CK_RV init_lib_and_find_token_slot(CK_SLOT_ID *slot)
 		return rv;
 
 	rv = C_GetSlotList(CK_TRUE, NULL, &count);
-	if (rv != CKR_BUFFER_TOO_SMALL)
+	if (rv != CKR_OK)
 		goto bail;
 
 	if (count < 1) {
@@ -187,13 +187,13 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 
 	slot_count2 = 0;
 	rv = C_GetSlotList(0, NULL, &slot_count2);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_BUFFER_TOO_SMALL))
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto out;
 
 	slot_count = 0;
 
 	rv = C_GetSlotList(1, NULL, &slot_count);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_BUFFER_TOO_SMALL))
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto out;
 
 	slot_ids = calloc(slot_count, sizeof(CK_SLOT_ID));
@@ -218,8 +218,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 
 		mecha_count = 0;
 		rv = C_GetMechanismList(slot, NULL, &mecha_count);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
-						  CKR_BUFFER_TOO_SMALL))
+		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
 		mecha_types = calloc(mecha_count, sizeof(CK_MECHANISM_TYPE));
