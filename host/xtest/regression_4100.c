@@ -144,7 +144,7 @@ static void xtest_tee_test_4101(ADBG_Case_t *c)
 		return;
 
 	rv = C_Finalize(NULL);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		return;
 
 	rv = C_Initialize(NULL);
