@@ -474,11 +474,11 @@ static CK_ATTRIBUTE cktest_generate_aes_object[] = {
 };
 
 static CK_MECHANISM mecha_generate_gensecret = {
-	CKM_GENERIC_SECRET_KEY_GEN, NULL_PTR, 0
+	CKM_GENERIC_SECRET_KEY_GEN, NULL, 0
 };
 
 static CK_MECHANISM mecha_generate_aes_generic = {
-	CKM_AES_KEY_GEN, NULL_PTR, 0
+	CKM_AES_KEY_GEN, NULL, 0
 };
 
 /* Generate a generic secret */
