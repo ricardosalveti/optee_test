@@ -59,7 +59,6 @@ ifeq ($(CFG_SECURE_DATA_PATH),y)
 srcs += sdp_basic.c
 endif
 
-CFG_SECURE_KEY_SERVICES ?= y
 ifeq ($(CFG_SECURE_KEY_SERVICES),y)
 srcs += regression_4100.c
 OPTEE_SKS_HEADERS ?= ../../../optee_client/libsks/include

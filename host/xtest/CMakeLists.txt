@@ -51,6 +51,10 @@ if (CFG_SECURE_DATA_PATH)
 	list (APPEND SRC sdp_basic.c)
 endif()
 
+if (CFG_SECURE_KEY_SERVICES)
+	list (APPEND SRC regression_4100.c)
+endif()
+
 ################################################################################
 # Built binary
 ################################################################################
@@ -58,10 +62,6 @@ add_executable (${PROJECT_NAME} ${SRC})
 
 target_compile_options (${PROJECT_NAME}
 	PRIVATE -include conf.h
-)
-
-set_target_properties(${PROJECT_NAME}
-	PROPERTIES COMPILE_FLAGS "-DCFG_SECURE_KEY_SERVICES"
 )
 
 target_include_directories(${PROJECT_NAME}
