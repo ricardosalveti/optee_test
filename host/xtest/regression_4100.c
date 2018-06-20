@@ -984,17 +984,24 @@ static void xtest_tee_test_4108(ADBG_Case_t *c)
 
 	for (n = 0; n < ARRAY_SIZE(cktest_allowed_valid); n++) {
 
+		Do_ADBG_BeginSubCase(c, "valid usage #%u", n);
+
 		rv = cipher_init_final(c, session,
 					cktest_allowed_valid[n].attr_key,
 					cktest_allowed_valid[n].attr_count,
 					cktest_allowed_valid[n].mechanism,
 					TEE_MODE_ENCRYPT,
 					CKR_OK);
+
+		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		Do_ADBG_EndSubCase(c, NULL);
 		if (rv)
 			goto bail;
+
 	}
 
 	for (n = 0; n < ARRAY_SIZE(cktest_allowed_invalid); n++) {
+		Do_ADBG_BeginSubCase(c, "invalid usage #%u", n);
 
 		rv = cipher_init_final(c, session,
 					cktest_allowed_invalid[n].attr_key,
@@ -1002,8 +1009,12 @@ static void xtest_tee_test_4108(ADBG_Case_t *c)
 					cktest_allowed_invalid[n].mechanism,
 					TEE_MODE_ENCRYPT,
 					CKR_KEY_FUNCTION_NOT_PERMITTED);
+
+		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		Do_ADBG_EndSubCase(c, NULL);
 		if (rv)
 			goto bail;
+
 	}
 
 bail:
@@ -1036,7 +1047,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_cts_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_OK);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1045,7 +1056,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_cts_mechanism,
 				TEE_MODE_DECRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	/* Decrypt only AES CTR key */
@@ -1055,7 +1066,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ctr_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1064,7 +1075,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ctr_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	/* Encrypt only AES GCM key */
@@ -1074,7 +1085,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_gcm_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_OK);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1083,7 +1094,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_gcm_mechanism,
 				TEE_MODE_DECRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	/* Decrypt only AES CCM key */
@@ -1093,7 +1104,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ccm_mechanism,
 				TEE_MODE_DECRYPT,
 				CKR_OK);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1102,7 +1113,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ccm_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (rv)
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
 bail:
