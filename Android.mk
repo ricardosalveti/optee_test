@@ -22,7 +22,7 @@ LOCAL_MODULE := xtest
 LOCAL_SHARED_LIBRARIES := libteec
 
 ifeq ($(CFG_SECURE_KEY_SERVICES),y)
-LOCAL_SHARED_LIBRARIES += liboptee_cryptoki
+LOCAL_SHARED_LIBRARIES += libsks
 endif
 
 srcs := regression_1000.c

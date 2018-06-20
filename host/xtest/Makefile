@@ -64,7 +64,7 @@ srcs += regression_4100.c
 OPTEE_SKS_HEADERS ?= ../../../optee_client/libsks/include
 CFLAGS += -DCFG_SECURE_KEY_SERVICES
 CFLAGS += -I$(OPTEE_SKS_HEADERS)
-LDFLAGS += -L$(OPTEE_CLIENT_EXPORT)/lib -loptee_cryptoki
+LDFLAGS += -L$(OPTEE_CLIENT_EXPORT)/lib -lsks
 endif
 
 ifdef CFG_GP_PACKAGE_PATH

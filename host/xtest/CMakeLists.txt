@@ -24,7 +24,6 @@ set (SRC
 	benchmark_2000.c
 	regression_1000.c
 	regression_4000.c
-	regression_4100.c
 	regression_5000.c
 	regression_6000.c
 	regression_7000.c
@@ -76,7 +75,7 @@ target_link_libraries (${PROJECT_NAME}
 	PRIVATE xtest-ta-headers
 	PRIVATE teec
 	PRIVATE m
-	PRIVATE optee_cryptoki
+	PRIVATE sks
 )
 
 ################################################################################
