@@ -283,7 +283,7 @@ static void xtest_tee_test_4103(ADBG_Case_t *c)
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
-	/* Close all remaing sessions */
+	/* Close all remaining sessions */
 	rv = C_CloseAllSessions(slot);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
@@ -293,16 +293,8 @@ static void xtest_tee_test_4103(ADBG_Case_t *c)
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 		goto bail;
 
-	/* Last open/closure of a session */
+	/* Open a session, should be closed from library closure */
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[0]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
-		goto bail;
-
-	rv = C_CloseSession(session[0]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
-		goto bail;
-
-	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[1]);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
