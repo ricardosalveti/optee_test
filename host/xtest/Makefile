@@ -24,6 +24,22 @@ OBJCOPY		?= $(CROSS_COMPILE)objcopy
 OBJDUMP		?= $(CROSS_COMPILE)objdump
 READELF		?= $(CROSS_COMPILE)readelf
 
+# OpenSSL is used by GP tests series 8500 and Mbed TLS test 8103
+ifneq ($(CFG_GP_PACKAGE_PATH)$(filter y,$(CFG_TA_MBEDTLS)),)
+CFLAGS += -DOPENSSL_FOUND=1
+ifneq ($(OPTEE_OPENSSL_EXPORT),)
+LDFLAGS += -lcrypto
+CFLAGS += -I$(OPTEE_OPENSSL_EXPORT)
+else #OPTEE_OPENSSL_EXPORT
+CFLAGS += -I../openssl/include
+ifeq ($(COMPILE_NS_USER),32)
+LDFLAGS += ../openssl/lib/arm/libcrypto.a -ldl
+else
+LDFLAGS += ../openssl/lib/aarch64/libcrypto.a -ldl
+endif
+endif #OPTEE_OPENSSL_EXPORT
+endif #require OpenSSL
+
 srcs := regression_1000.c
 
 ifeq ($(CFG_GP_SOCKETS),y)
@@ -46,6 +62,7 @@ srcs +=	adbg/src/adbg_case.c \
 	regression_6000.c \
 	regression_7000.c \
 	regression_8000.c \
+	regression_8100.c \
 	sha_perf.c \
 	xtest_helpers.c \
 	xtest_main.c \
@@ -82,9 +99,7 @@ objs 	:= $(patsubst %.c,$(out-dir)/xtest/%.o, $(srcs))
 CFLAGS += -I./
 CFLAGS += -I./adbg/include
 CFLAGS += -I./xml/include
-ifeq ($(CFG_GCM_NIST_VECTORS),y)
 CFLAGS += -I$(out-dir)/xtest
-endif
 
 CFLAGS += -I$(OPTEE_CLIENT_EXPORT)/include
 CFLAGS += -I$(TA_DEV_KIT_DIR)/host_include
@@ -120,20 +135,12 @@ CFLAGS += -I../../ta/GP_TTA_answerSuccessTo_OpenSession_Invoke
 CFLAGS += -I../../ta/GP_TTA_check_OpenSession_with_4_parameters
 CFLAGS += -I../../ta/GP_TTA_testingClientAPI
 
-# need more include: openssl
-CFLAGS += -Ifor_gp/include
 
 # by default, the client application is compiled as the kernel of optee-os
 ifeq ($(CFG_ARM32_core),y)
 COMPILE_NS_USER ?= 32
 else
 COMPILE_NS_USER ?= 64
-endif
-
-ifeq ($(COMPILE_NS_USER),32)
-LDFLAGS += ../lib/armv7/libcrypto.a
-else
-LDFLAGS += ../lib/armv8/libcrypto.a
 endif
 
 endif
@@ -213,6 +220,20 @@ $(foreach v, $(GCM_NIST_VECTORS_ENCRYPT), $(eval $(call \
 	create-nist-gcm-vectors,$v,encrypt)))
 endif
 
+define embed-file
+cleanfiles += $(out-dir)/xtest/$(1).h
+
+$(out-dir)/xtest/$(1).h: $(2)
+	@echo '  GEN     $$@'
+	$(q)../../scripts/file_to_c.py --inf $$< --out $$@ --name $(1)
+
+$(CURDIR)/regression_8100.c: $(out-dir)/xtest/$(1).h
+endef
+
+$(eval $(call embed-file,regression_8100_ca_crt,../../cert/ca.crt))
+$(eval $(call embed-file,regression_8100_mid_crt,../../cert/mid.crt))
+$(eval $(call embed-file,regression_8100_my_crt,../../cert/my.crt))
+$(eval $(call embed-file,regression_8100_my_csr,../../cert/my.csr))
 
 .PHONY: clean
 clean:

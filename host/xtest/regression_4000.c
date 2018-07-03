@@ -15,6 +15,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <malloc.h>
+#include <time.h>
 
 #include "xtest_test.h"
 #include "xtest_helpers.h"
@@ -45,6 +46,9 @@ static void xtest_tee_test_4008(ADBG_Case_t *Case_p);
 static void xtest_tee_test_4009(ADBG_Case_t *Case_p);
 static void xtest_tee_test_4010(ADBG_Case_t *Case_p);
 static void xtest_tee_test_4011(ADBG_Case_t *Case_p);
+#ifdef CFG_SYSTEM_PTA
+static void xtest_tee_test_4012(ADBG_Case_t *Case_p);
+#endif
 
 ADBG_CASE_DEFINE(regression, 4001, xtest_tee_test_4001,
 		"Test TEE Internal API hash operations");
@@ -68,6 +72,10 @@ ADBG_CASE_DEFINE(regression, 4010, xtest_tee_test_4010,
 		"Test TEE Internal API create transient object (negative)");
 ADBG_CASE_DEFINE(regression, 4011, xtest_tee_test_4011,
 		"Test TEE Internal API Bleichenbacher attack (negative)");
+#ifdef CFG_SYSTEM_PTA
+ADBG_CASE_DEFINE(regression, 4012, xtest_tee_test_4012,
+		"Test seeding RNG entropy");
+#endif
 
 static TEEC_Result ta_crypt_cmd_random_number_generate(ADBG_Case_t *c,
 						       TEEC_Session *s,
@@ -2071,10 +2079,14 @@ out:
 }
 #endif
 
-/* generated with scripts/crypt_aes_cbc_nopad.pl */
 static const uint8_t ciph_data_aes_key1[] = {
 	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, /* 01234567 */
 	0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, /* 89ABCDEF */
+};
+
+static const uint8_t ciph_data_aes_key2[] = {
+	0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
+	0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
 };
 
 static const uint8_t ciph_data_des_key1[] = {
@@ -2132,9 +2144,28 @@ static const uint8_t ciph_data_in4[] = {
 	0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, /* 89ABCDEF */
 };
 
+static const uint8_t ciph_data_in5[] = {
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+	0x01, 0x01, 0x01
+};
+
 static const uint8_t ciph_data_128_iv1[] = {
 	0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, /* 12345678 */
 	0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x30, /* 9ABCDEF0 */
+};
+
+static const uint8_t ciph_data_128_iv2[] = {
+	0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+	0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
 };
 
 static const uint8_t ciph_data_64_iv1[] = {
@@ -2190,6 +2221,20 @@ static const uint8_t ciph_data_aes_ctr_out4[] = {
 	0x72, 0x0E, 0x3C, 0xD1, 0xA1, 0x2F, 0x5D, 0x33, /* r.<../]3 */
 	0x9F, 0xD7, 0x0C, 0x92, 0xD4, 0xA5, 0x9D, 0x06, /* ........ */
 	0x01, 0x80, 0x38, 0xCD, 0xC2, 0x71, 0x5D, 0x4A, /* ..8..q]J */
+};
+
+static const uint8_t ciph_data_aes_ctr_out5[] = {
+	0xbb, 0xfe, 0x07, 0x04, 0x1c, 0x8e, 0x09, 0x61,
+	0xfb, 0xb1, 0x7c, 0xa5, 0x4d, 0x2b, 0x30, 0xf6,
+	0x26, 0x9e, 0xff, 0x61, 0x18, 0x47, 0xc6, 0x06,
+	0x81, 0x02, 0x84, 0xcd, 0x9c, 0x4b, 0x6d, 0x21,
+	0xe2, 0x64, 0xa6, 0x50, 0x7f, 0x28, 0x81, 0x6f,
+	0x29, 0xda, 0xd5, 0x56, 0x3f, 0x46, 0xac, 0xca,
+	0x37, 0xe7, 0x77, 0x36, 0xbc, 0x76, 0x39, 0x57,
+	0xaa, 0x67, 0x1b, 0x2a, 0xe6, 0x36, 0x57, 0x6d,
+	0x2a, 0xb8, 0x77, 0x41, 0xc2, 0x4e, 0x4f, 0x27,
+	0x4c, 0x34, 0x7a, 0x01, 0x6a, 0xda, 0x75, 0x75,
+	0x3e, 0x68, 0xb2
 };
 
 static const uint8_t ciph_data_aes_cbc_vect1_key[] = {
@@ -2569,8 +2614,13 @@ static const struct xtest_ciph_case ciph_cases[] = {
 			ciph_data_aes_key1, ciph_data_128_iv1, 16,
 			ciph_data_in4,
 			ciph_data_aes_ctr_out4),
+	XTEST_CIPH_CASE(TEE_ALG_AES_CTR, TEE_TYPE_AES,
+			ciph_data_aes_key2, ciph_data_128_iv2, 11,
+			ciph_data_in5,
+			ciph_data_aes_ctr_out5),
 
 	XTEST_CIPH_CASE_AES_CBC(vect1, 11),
+	XTEST_CIPH_CASE_AES_CBC(vect1, 64),
 
 	/* AES-CTS */
 	XTEST_CIPH_CASE_AES_CTS(vect1, 13),
@@ -2807,12 +2857,24 @@ static CK_ATTRIBUTE cktest_aes_flavours_key2[] =
 static CK_ATTRIBUTE cktest_aes_flavours_key3[] =
 	CK_CIPHERING_KEY_AES(ciph_data_aes_cts_vect1_key);
 
+static CK_ATTRIBUTE cktest_aes_flavours_key4[] =
+	CK_CIPHERING_KEY_AES(ciph_data_aes_key2);
+
 /* This is a dump of ciph_data_128_iv1, as CK expects it in a structure */
-static CK_AES_CTR_PARAMS cktest_aes_ctr_params = {
+static CK_AES_CTR_PARAMS cktest_aes_ctr_params1 = {
 	.ulCounterBits = 1,
 	.cb = {
 		0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, /* 12345678 */
 		0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x30, /* 9ABCDEF0 */
+	},
+};
+
+/* This is a dump of ciph_data_128_iv2, as CK expects it in a structure */
+static CK_AES_CTR_PARAMS cktest_aes_ctr_params2 = {
+	.ulCounterBits = 1,
+	.cb = {
+		0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
+		0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
 	},
 };
 
@@ -2827,9 +2889,13 @@ static CK_MECHANISM cktest_aes_cbc_mechanism2 = {
 	CKM_AES_CBC, (CK_BYTE_PTR)ciph_data_aes_cbc_vect1_iv,
 	sizeof(ciph_data_aes_cbc_vect1_iv),
 };
-static CK_MECHANISM cktest_aes_ctr_mechanism = {
-	CKM_AES_CTR, (CK_BYTE_PTR)&cktest_aes_ctr_params,
-	sizeof(cktest_aes_ctr_params),
+static CK_MECHANISM cktest_aes_ctr_mechanism1 = {
+	CKM_AES_CTR, (CK_BYTE_PTR)&cktest_aes_ctr_params1,
+	sizeof(cktest_aes_ctr_params1),
+};
+static CK_MECHANISM cktest_aes_ctr_mechanism2 = {
+	CKM_AES_CTR, (CK_BYTE_PTR)&cktest_aes_ctr_params2,
+	sizeof(cktest_aes_ctr_params2),
 };
 static CK_MECHANISM cktest_aes_cts_mechanism1 = {
 	CKM_AES_CTS, (CK_BYTE_PTR)ciph_data_aes_cts_vect1_iv,
@@ -2881,7 +2947,9 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 			break;
 		case TEE_ALG_AES_CTR:
 			if (ciph_cases[n].iv == ciph_data_128_iv1)
-				mechanism = &cktest_aes_ctr_mechanism;
+				mechanism = &cktest_aes_ctr_mechanism1;
+			if (ciph_cases[n].iv == ciph_data_128_iv2)
+				mechanism = &cktest_aes_ctr_mechanism2;
 			break;
 		default:
 			continue;
@@ -2894,6 +2962,10 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 		if (ciph_cases[n].key1 == ciph_data_aes_key1) {
 			ck_key1 = cktest_aes_flavours_key1;
 			attr_count = ARRAY_SIZE(cktest_aes_flavours_key1);
+		}
+		if (ciph_cases[n].key1 == ciph_data_aes_key2) {
+			ck_key1 = cktest_aes_flavours_key4;
+			attr_count = ARRAY_SIZE(cktest_aes_flavours_key4);
 		}
 		if (ciph_cases[n].key1 == ciph_data_aes_cbc_vect1_key) {
 			ck_key1 = cktest_aes_flavours_key2;
@@ -3721,6 +3793,14 @@ static const struct xtest_ac_case xtest_ac_cases[] = {
 			  ac_rsassa_vect2, NULL_ARRAY, WITHOUT_SALT),
 	XTEST_AC_RSA_CASE(0, TEE_ALG_RSA_NOPAD, TEE_MODE_DECRYPT,
 			  ac_rsassa_vect2, NULL_ARRAY, WITHOUT_SALT),
+	XTEST_AC_RSA_CASE(0, TEE_ALG_RSA_NOPAD, TEE_MODE_ENCRYPT,
+			  ac_rsassa_vect18, NULL_ARRAY, WITHOUT_SALT),
+	XTEST_AC_RSA_CASE(0, TEE_ALG_RSA_NOPAD, TEE_MODE_DECRYPT,
+			  ac_rsassa_vect18, NULL_ARRAY, WITHOUT_SALT),
+	XTEST_AC_RSA_CASE(0, TEE_ALG_RSA_NOPAD, TEE_MODE_ENCRYPT,
+			  ac_rsassa_vect19, NULL_ARRAY, WITHOUT_SALT),
+	XTEST_AC_RSA_CASE(0, TEE_ALG_RSA_NOPAD, TEE_MODE_DECRYPT,
+			  ac_rsassa_vect19, NULL_ARRAY, WITHOUT_SALT),
 	XTEST_AC_RSA_CASE(0, TEE_ALG_RSASSA_PKCS1_V1_5_SHA1, TEE_MODE_SIGN,
 			  ac_rsassa_vect3, NULL_ARRAY, WITHOUT_SALT),
 	XTEST_AC_RSA_CASE(0, TEE_ALG_RSASSA_PKCS1_V1_5_SHA1, TEE_MODE_VERIFY,
@@ -4478,7 +4558,7 @@ static bool create_key(ADBG_Case_t *c, TEEC_Session *s,
 		return false;
 
 	for (n = 0; n < num_attrs; n++) {
-		uint8_t out[384];
+		uint8_t out[512];
 		size_t out_size;
 
 		out_size = sizeof(out);
@@ -5901,3 +5981,43 @@ static void xtest_tee_test_4011(ADBG_Case_t *c)
 out:
 	TEEC_CloseSession(&s);
 }
+
+
+#ifdef CFG_SYSTEM_PTA
+static void xtest_tee_test_4012(ADBG_Case_t *c)
+{
+	TEEC_Session session = { 0 };
+	uint32_t ret_orig;
+	TEEC_Operation op = TEEC_OPERATION_INITIALIZER;
+	/* Fortuna PRNG requires seed <= 32 bytes */
+	uint8_t pool_input[32] = {};
+	time_t t;
+	struct tm tm_local;
+
+	t = time(NULL);
+	tm_local = *localtime(&t);
+
+	memcpy((void *)pool_input, (void *)&tm_local,
+	       sizeof(pool_input) < sizeof(tm_local) ?
+	       sizeof(pool_input) : sizeof(tm_local));
+
+
+	op.params[0].tmpref.buffer = pool_input;
+	op.params[0].tmpref.size = sizeof(pool_input);
+	op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+					 TEEC_NONE,
+					 TEEC_NONE,
+					 TEEC_NONE);
+	if (!ADBG_EXPECT_TEEC_SUCCESS(c,
+		xtest_teec_open_session(&session, &crypt_user_ta_uuid, NULL,
+					&ret_orig)))
+		return;
+
+	(void)ADBG_EXPECT_TEEC_SUCCESS(c,
+				       TEEC_InvokeCommand(&session,
+					TA_CRYPT_CMD_SEED_RNG_POOL,
+					&op,
+					&ret_orig));
+	TEEC_CloseSession(&session);
+}
+#endif

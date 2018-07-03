@@ -10,7 +10,31 @@ if(NOT THREADS_FOUND)
 	message(FATAL_ERROR "Threads not found")
 endif()
 
+find_package(OpenSSL)
+if(OPENSSL_FOUND)
+	add_compile_options(-DOPENSSL_FOUND=1)
+	set (OPENSSL_PRIVATE_LINK crypto)
+endif()
+
 include(GNUInstallDirs)
+
+macro(EMBED_8100FILE prefix infile)
+	add_custom_command(
+		OUTPUT  regression_8100_${prefix}.h
+		COMMAND ../../scripts/file_to_c.py --inf ${infile}
+	--out ${CMAKE_CURRENT_BINARY_DIR}/regression_8100_${prefix}.h
+	--name regression_8100_${prefix}
+		DEPENDS ../../scripts/file_to_c.py ${infile}
+	)
+
+	set_property(SOURCE regression_8100.c APPEND PROPERTY OBJECT_DEPENDS
+		     ${CMAKE_CURRENT_BINARY_DIR}/regression_8100_${prefix}.h)
+endmacro(EMBED_8100FILE)
+
+EMBED_8100FILE(ca_crt ../../cert/ca.crt)
+EMBED_8100FILE(mid_crt ../../cert/mid.crt)
+EMBED_8100FILE(my_crt ../../cert/my.crt)
+EMBED_8100FILE(my_csr ../../cert/my.csr)
 
 set (SRC
 	adbg/src/adbg_case.c
@@ -28,6 +52,7 @@ set (SRC
 	regression_6000.c
 	regression_7000.c
 	regression_8000.c
+	regression_8100.c
 	sha_perf.c
 	xtest_helpers.c
 	xtest_main.c
@@ -75,6 +100,7 @@ target_link_libraries (${PROJECT_NAME}
 	PRIVATE xtest-ta-headers
 	PRIVATE teec
 	PRIVATE m
+	PRIVATE ${OPENSSL_PRIVATE_LINK}
 	PRIVATE sks
 )
 
