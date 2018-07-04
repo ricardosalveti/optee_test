@@ -1974,7 +1974,7 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE key1_handle;
+	CK_OBJECT_HANDLE key_handle;
 	uint8_t out[64];
 	CK_ULONG out_size;
 	size_t n;
@@ -2004,14 +2004,14 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 		close_subcase = 1;
 		test = &mac_cases[n];
 
-		rv = C_CreateObject(session, ck_key, attr_count, &key1_handle);
+		rv = C_CreateObject(session, ck_key, attr_count, &key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
 		/* Test 1 shot signature */
 		if (mac_cases[n].in != NULL) {
-			rv = C_SignInit(session, mechanism, key1_handle);
+			rv = C_SignInit(session, mechanism, key_handle);
 
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
@@ -2044,7 +2044,7 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 		}
 
 		/* Test 2 step update signature */
-		rv = C_SignInit(session, mechanism, key1_handle);
+		rv = C_SignInit(session, mechanism, key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
@@ -2075,7 +2075,7 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 		(void)ADBG_EXPECT_BUFFER(c, mac_cases[n].out,
 					 mac_cases[n].out_len, out, out_size);
 
-		rv = C_DestroyObject(session, key1_handle);
+		rv = C_DestroyObject(session, key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
@@ -2985,7 +2985,7 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE key1_handle;
+	CK_OBJECT_HANDLE key_handle;
 	uint8_t out[2048];
 	CK_ULONG out_size;
 	CK_ULONG out_offs;
@@ -3015,16 +3015,16 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 					(unsigned int)ciph_cases[n].line);
 		close_subcase = 1;
 
-		rv = C_CreateObject(session, ck_key, attr_count, &key1_handle);
+		rv = C_CreateObject(session, ck_key, attr_count, &key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
 		if (ciph_cases[n].mode == TEE_MODE_ENCRYPT)
-			rv = C_EncryptInit(session, mechanism, key1_handle);
+			rv = C_EncryptInit(session, mechanism, key_handle);
 
 		if (ciph_cases[n].mode == TEE_MODE_DECRYPT)
-			rv = C_DecryptInit(session, mechanism, key1_handle);
+			rv = C_DecryptInit(session, mechanism, key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
@@ -3090,7 +3090,7 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 		(void)ADBG_EXPECT_BUFFER(c, ciph_cases[n].out,
 					 ciph_cases[n].out_len, out, out_offs);
 
-		rv = C_DestroyObject(session, key1_handle);
+		rv = C_DestroyObject(session, key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
@@ -3515,7 +3515,7 @@ void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE key1_handle;
+	CK_OBJECT_HANDLE key_handle;
 	uint8_t out[512];
 	CK_ULONG out_size;
 	size_t out_offs;
@@ -3529,24 +3529,24 @@ void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot)
 		goto out;
 
 	for (n = 0; n < ARRAY_SIZE(ae_cases); n++) {
-		CK_ATTRIBUTE_PTR ck_key1;
+		CK_ATTRIBUTE_PTR ck_key;
 		CK_MECHANISM_PTR mechanism;
 		CK_ULONG attr_count = 0;
 		size_t i;
 
 		mechanism = NULL;
-		ck_key1 = NULL;
+		ck_key = NULL;
 
 		for (i = 0; i < ARRAY_SIZE(cktest_ae_test_case); i++) {
 			if (ae_cases[n].key == cktest_ae_test_case[i].key) {
-				ck_key1 = cktest_ae_test_case[i].ck_key;
+				ck_key = cktest_ae_test_case[i].ck_key;
 				attr_count = cktest_ae_test_case[i].attr_count;
 				mechanism = cktest_ae_test_case[i].ck_mechanism;
 				break;
 			}
 		}
 
-		if (!mechanism || !ck_key1)
+		if (!mechanism || !ck_key)
 			continue;
 
 		Do_ADBG_BeginSubCase(c, "AE case %d algo 0x%x (%s) %s line %d",
@@ -3559,16 +3559,16 @@ void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot)
 		close_subcase = 1;
 		test = &ae_cases[n];
 
-		rv = C_CreateObject(session, ck_key1, attr_count, &key1_handle);
+		rv = C_CreateObject(session, ck_key, attr_count, &key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
 		if (test->mode == TEE_MODE_ENCRYPT)
-			rv = C_EncryptInit(session, mechanism, key1_handle);
+			rv = C_EncryptInit(session, mechanism, key_handle);
 
 		if (test->mode == TEE_MODE_DECRYPT)
-			rv = C_DecryptInit(session, mechanism, key1_handle);
+			rv = C_DecryptInit(session, mechanism, key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
@@ -3691,7 +3691,7 @@ void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot)
 						    out, out_size);
 		}
 
-		rv = C_DestroyObject(session, key1_handle);
+		rv = C_DestroyObject(session, key_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
