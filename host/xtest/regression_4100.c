@@ -1684,30 +1684,30 @@ bail0:
 
 
 ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
-		"Initialize and close Cryptoki library");
+		"PKCS11: Initialize and close Cryptoki library");
 ADBG_CASE_DEFINE(regression, 4102, xtest_tee_test_4102,
-		"Connect token and get some token info");
+		"PKCS11: Connect token and get some token info");
 ADBG_CASE_DEFINE(regression, 4103, xtest_tee_test_4103,
-		"Open and close PKCS#11 sessions");
+		"PKCS11: Open and close PKCS#11 sessions");
 ADBG_CASE_DEFINE(regression, 4104, xtest_tee_test_4104,
-		"Login tests (TODO: still weak)");
+		"PKCS11: Login tests (TODO: still weak)");
 ADBG_CASE_DEFINE(regression, 4105, xtest_tee_test_4105,
-		"Generate objects");
+		"PKCS11: Generate objects");
 ADBG_CASE_DEFINE(regression, 4106, xtest_tee_test_4106,
-		"Create and destroy volatile and persistent object");
+		"PKCS11: Create and destroy sesion and token objects");
 ADBG_CASE_DEFINE(regression, 4107, xtest_tee_test_4107,
-		"Create objects in read-only and read-write sessions");
+		"PKCS11: Create objects in read-only and read-write sessions");
 ADBG_CASE_DEFINE(regression, 4108, xtest_tee_test_4108,
-		"Check ciphering with valid and invalid keys #1");
+		"PKCS11: Check ciphering with valid and invalid keys #1");
 ADBG_CASE_DEFINE(regression, 4109, xtest_tee_test_4109,
-		"Check ciphering with valid and invalid keys #2");
+		"PKCS11: Check ciphering with valid and invalid keys #2");
 ADBG_CASE_DEFINE(regression, 4110, xtest_tee_test_4110,
-		"Compliance of ciphering processings");
+		"PKCS11: Compliance of ciphering processings");
 ADBG_CASE_DEFINE(regression, 4111, xtest_tee_test_4111,
-		"Compliance of MAC signing processings");
+		"PKCS11: Compliance of MAC signing processings");
 ADBG_CASE_DEFINE(regression, 4112, xtest_tee_test_4112,
-		"Compliance of AES CCM/GCM ciphering processings");
+		"PKCS11: Compliance of AES CCM/GCM ciphering processings");
 ADBG_CASE_DEFINE(regression, 4113, xtest_tee_test_4113, /*  TODO: rename 4110 */
-		"Check operations release at session closure");
+		"PKCS11: Check operations release at session closure");
 ADBG_CASE_DEFINE(regression, 4114, xtest_tee_test_4114,
-		"Object searches");
+		"PKCS11: Object lookup");
