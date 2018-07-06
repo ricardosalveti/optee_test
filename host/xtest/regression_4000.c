@@ -1854,6 +1854,122 @@ static CK_MECHANISM cktest_aes_cbc_mac_mechanism = {
 	CKM_AES_XCBC_MAC, NULL, 0,
 };
 
+static int get_ck_mac_case(size_t mac_case_index, CK_MECHANISM_PTR *mechanism,
+			   CK_ATTRIBUTE_PTR *key, CK_ULONG *count)
+{
+	const struct xtest_mac_case *mac_case = &mac_cases[mac_case_index];
+
+	*mechanism = NULL;
+	*key = NULL;
+	*count = 0;
+
+	switch (mac_case->algo) {
+	case TEE_ALG_AES_CMAC:
+		*mechanism = &cktest_aes_cmac_mechanism;
+		break;
+	case TEE_ALG_HMAC_MD5:
+		*mechanism = &cktest_hmac_md5_mechanism;
+		break;
+	case TEE_ALG_HMAC_SHA1:
+		*mechanism = &cktest_hmac_sha1_mechanism;
+		break;
+	case TEE_ALG_HMAC_SHA224:
+		*mechanism = &cktest_hmac_sha224_mechanism;
+		break;
+	case TEE_ALG_HMAC_SHA256:
+		*mechanism = &cktest_hmac_sha256_mechanism;
+		break;
+	case TEE_ALG_HMAC_SHA384:
+		*mechanism = &cktest_hmac_sha384_mechanism;
+		break;
+	case TEE_ALG_HMAC_SHA512:
+		*mechanism = &cktest_hmac_sha512_mechanism;
+		break;
+	case TEE_ALG_AES_CBC_MAC_NOPAD:
+		*mechanism = &cktest_aes_cbc_mac_mechanism;
+		break;
+	default:
+		break;
+	}
+
+	/* AES CMAC key attributes reference (key and attributes count */
+	if (mac_case->key == mac_cmac_vect1_key) {
+		*key = cktest_aes_cmac_key1;
+		*count = ARRAY_SIZE(cktest_aes_cmac_key1);
+	}
+	if (mac_case->key == mac_cmac_vect5_key) {
+		*key = cktest_aes_cmac_key2;
+		*count = ARRAY_SIZE(cktest_aes_cmac_key2);
+	}
+	if (mac_case->key == mac_cmac_vect9_key) {
+		*key = cktest_aes_cmac_key3;
+		*count = ARRAY_SIZE(cktest_aes_cmac_key3);
+	}
+	/* HMAC key attributes reference (key and attributes count */
+	if (mac_case->key == mac_data_md5_key1) {
+		*key = cktest_hmac_md5_key;
+		*count = ARRAY_SIZE(cktest_hmac_md5_key);
+	}
+	if (mac_case->key == mac_data_sha1_key1) {
+		*key = cktest_hmac_sha1_key;
+		*count = ARRAY_SIZE(cktest_hmac_sha1_key);
+	}
+	if (mac_case->key == mac_data_sha224_key1) {
+		*key = cktest_hmac_sha224_key;
+		*count = ARRAY_SIZE(cktest_hmac_sha224_key);
+	}
+	if (mac_case->key == mac_data_sha256_key1) {
+		*key = cktest_hmac_sha256_key1;
+		*count = ARRAY_SIZE(cktest_hmac_sha256_key1);
+	}
+	if (mac_case->key == mac_data_sha256_key2) {
+		*key = cktest_hmac_sha256_key2;
+		*count = ARRAY_SIZE(cktest_hmac_sha256_key2);
+	}
+	if (mac_case->key == mac_data_sha384_key1) {
+		*key = cktest_hmac_sha384_key;
+		*count = ARRAY_SIZE(cktest_hmac_sha384_key);
+	}
+	if (mac_case->key == mac_data_sha512_key1) {
+		*key = cktest_hmac_sha512_key;
+		*count = ARRAY_SIZE(cktest_hmac_sha512_key);
+	}
+	/* AES CBC MAC key attributes reference (key and attributes count */
+	if (mac_case->key == mac_cbc_vect1_key) {
+		*key = cktest_aes_cbc_mac_key1;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key1);
+	}
+	if (mac_case->key == mac_cbc_vect2_key) {
+		*key = cktest_aes_cbc_mac_key2;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key2);
+	}
+	if (mac_case->key == mac_cbc_vect3_key) {
+		*key = cktest_aes_cbc_mac_key3;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key3);
+	}
+	if (mac_case->key == mac_cbc_vect4_key) {
+		*key = cktest_aes_cbc_mac_key4;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key4);
+	}
+	if (mac_case->key == mac_cbc_vect5_key) {
+		*key = cktest_aes_cbc_mac_key5;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key5);
+	}
+	if (mac_case->key == mac_cbc_vect6_key) {
+		*key = cktest_aes_cbc_mac_key6;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key6);
+	}
+	if (mac_case->key == mac_cbc_vect10_key) {
+		*key = cktest_aes_cbc_mac_key10;
+		*count = ARRAY_SIZE(cktest_aes_cbc_mac_key10);
+	}
+
+	if (!*mechanism || !*key || !*count)
+		return 1;
+
+	return 0;
+}
+
 void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
@@ -1871,127 +1987,24 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 		goto out;
 
 	for (n = 0; n < ARRAY_SIZE(mac_cases); n++) {
-		CK_ATTRIBUTE_PTR ck_key1;
-		CK_MECHANISM_PTR mechanism;
-		CK_ULONG attr_count;
+		CK_ATTRIBUTE_PTR ck_key = NULL;
+		CK_MECHANISM_PTR mechanism = NULL;
+		CK_ULONG attr_count = 0;
 
-		mechanism = NULL;
-
-		switch (mac_cases[n].algo) {
-		case TEE_ALG_AES_CMAC:
-			mechanism = &cktest_aes_cmac_mechanism;
-			break;
-		case TEE_ALG_HMAC_MD5:
-			mechanism = &cktest_hmac_md5_mechanism;
-			break;
-		case TEE_ALG_HMAC_SHA1:
-			mechanism = &cktest_hmac_sha1_mechanism;
-			break;
-		case TEE_ALG_HMAC_SHA224:
-			mechanism = &cktest_hmac_sha224_mechanism;
-			break;
-		case TEE_ALG_HMAC_SHA256:
-			mechanism = &cktest_hmac_sha256_mechanism;
-			break;
-		case TEE_ALG_HMAC_SHA384:
-			mechanism = &cktest_hmac_sha384_mechanism;
-			break;
-		case TEE_ALG_HMAC_SHA512:
-			mechanism = &cktest_hmac_sha512_mechanism;
-			break;
-		case TEE_ALG_AES_CBC_MAC_NOPAD:
-			mechanism = &cktest_aes_cbc_mac_mechanism;
-			break;
-		default:
+		if (get_ck_mac_case(n, &mechanism, &ck_key, &attr_count)) {
+			Do_ADBG_Log("Skip case %u algo 0x%x",
+				    n, (unsigned int)mac_cases[n].algo);
 			continue;
 		}
 
-		ADBG_EXPECT_TRUE(c, mechanism != NULL);
-
-		ck_key1 = NULL;
-
-		/* aes cmac */
-		if (mac_cases[n].key == mac_cmac_vect1_key) {
-			ck_key1 = cktest_aes_cmac_key1;
-			attr_count = ARRAY_SIZE(cktest_aes_cmac_key1);
-		}
-		if (mac_cases[n].key == mac_cmac_vect5_key) {
-			ck_key1 = cktest_aes_cmac_key2;
-			attr_count = ARRAY_SIZE(cktest_aes_cmac_key2);
-		}
-		if (mac_cases[n].key == mac_cmac_vect9_key) {
-			ck_key1 = cktest_aes_cmac_key3;
-			attr_count = ARRAY_SIZE(cktest_aes_cmac_key3);
-		}
-		/* hmac */
-		if (mac_cases[n].key == mac_data_md5_key1) {
-			ck_key1 = cktest_hmac_md5_key;
-			attr_count = ARRAY_SIZE(cktest_hmac_md5_key);
-		}
-		if (mac_cases[n].key == mac_data_sha1_key1) {
-			ck_key1 = cktest_hmac_sha1_key;
-			attr_count = ARRAY_SIZE(cktest_hmac_sha1_key);
-		}
-		if (mac_cases[n].key == mac_data_sha224_key1) {
-			ck_key1 = cktest_hmac_sha224_key;
-			attr_count = ARRAY_SIZE(cktest_hmac_sha224_key);
-		}
-		if (mac_cases[n].key == mac_data_sha256_key1) {
-			ck_key1 = cktest_hmac_sha256_key1;
-			attr_count = ARRAY_SIZE(cktest_hmac_sha256_key1);
-		}
-		if (mac_cases[n].key == mac_data_sha256_key2) {
-			ck_key1 = cktest_hmac_sha256_key2;
-			attr_count = ARRAY_SIZE(cktest_hmac_sha256_key2);
-		}
-		if (mac_cases[n].key == mac_data_sha384_key1) {
-			ck_key1 = cktest_hmac_sha384_key;
-			attr_count = ARRAY_SIZE(cktest_hmac_sha384_key);
-		}
-		if (mac_cases[n].key == mac_data_sha512_key1) {
-			ck_key1 = cktest_hmac_sha512_key;
-			attr_count = ARRAY_SIZE(cktest_hmac_sha512_key);
-		}
-		/* aes cbc mac */
-		if (mac_cases[n].key == mac_cbc_vect1_key) {
-			ck_key1 = cktest_aes_cbc_mac_key1;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key1);
-		}
-		if (mac_cases[n].key == mac_cbc_vect2_key) {
-			ck_key1 = cktest_aes_cbc_mac_key2;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key2);
-		}
-		if (mac_cases[n].key == mac_cbc_vect3_key) {
-			ck_key1 = cktest_aes_cbc_mac_key3;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key3);
-		}
-		if (mac_cases[n].key == mac_cbc_vect4_key) {
-			ck_key1 = cktest_aes_cbc_mac_key4;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key4);
-		}
-		if (mac_cases[n].key == mac_cbc_vect5_key) {
-			ck_key1 = cktest_aes_cbc_mac_key5;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key5);
-		}
-		if (mac_cases[n].key == mac_cbc_vect6_key) {
-			ck_key1 = cktest_aes_cbc_mac_key6;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key6);
-		}
-		if (mac_cases[n].key == mac_cbc_vect10_key) {
-			ck_key1 = cktest_aes_cbc_mac_key10;
-			attr_count = ARRAY_SIZE(cktest_aes_cbc_mac_key10);
-		}
-
-		ADBG_EXPECT_TRUE(c, ck_key1 != NULL);
-
-		Do_ADBG_BeginSubCase(c, "MAC case %d algo 0x%x (%s)",
-				     (int)n, (unsigned int)mac_cases[n].algo,
+		Do_ADBG_BeginSubCase(c, "MAC case %u algo 0x%x (%s)",
+				     n, (unsigned int)mac_cases[n].algo,
 				     ckm2str(mechanism->mechanism));
 
 		close_subcase = 1;
 		test = &mac_cases[n];
 
-		rv = C_CreateObject(session, ck_key1, attr_count, &key1_handle);
+		rv = C_CreateObject(session, ck_key, attr_count, &key1_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
@@ -2906,6 +2919,68 @@ static CK_MECHANISM cktest_aes_cts_mechanism2 = {
 	sizeof(ciph_data_aes_cts_issue1203_iv),
 };
 
+static int get_ck_ciph_case(size_t ciph_case_index, CK_MECHANISM_PTR *mechanism,
+			    CK_ATTRIBUTE_PTR *key, CK_ULONG *count)
+{
+	const struct xtest_ciph_case *ciph_case = &ciph_cases[ciph_case_index];
+
+	*mechanism = NULL;
+	*key = NULL;
+	*count = 0;
+
+	switch (ciph_case->algo) {
+	case TEE_ALG_AES_ECB_NOPAD:
+		*mechanism = &cktest_aes_ecb_mechanism;
+		break;
+	case TEE_ALG_AES_CBC_NOPAD:
+		if (ciph_case->iv == ciph_data_128_iv1) {
+			*mechanism = &cktest_aes_cbc_mechanism1;
+		}
+		if (ciph_case->iv == ciph_data_aes_cbc_vect1_iv) {
+			*mechanism = &cktest_aes_cbc_mechanism2;
+		}
+		break;
+	case TEE_ALG_AES_CTS:
+		if (ciph_case->iv == ciph_data_aes_cts_vect1_iv) {
+			*mechanism = &cktest_aes_cts_mechanism1;
+		}
+		if (ciph_case->iv == ciph_data_aes_cts_issue1203_iv) {
+			*mechanism = &cktest_aes_cts_mechanism2;
+		}
+		break;
+	case TEE_ALG_AES_CTR:
+		if (ciph_case->iv == ciph_data_128_iv1)
+			*mechanism = &cktest_aes_ctr_mechanism1;
+		if (ciph_case->iv == ciph_data_128_iv2)
+			*mechanism = &cktest_aes_ctr_mechanism2;
+		break;
+	default:
+		break;
+	}
+
+	if (ciph_case->key1 == ciph_data_aes_key1) {
+		*key = cktest_aes_flavours_key1;
+		*count = ARRAY_SIZE(cktest_aes_flavours_key1);
+	}
+	if (ciph_case->key1 == ciph_data_aes_key2) {
+		*key = cktest_aes_flavours_key4;
+		*count = ARRAY_SIZE(cktest_aes_flavours_key4);
+	}
+	if (ciph_case->key1 == ciph_data_aes_cbc_vect1_key) {
+		*key = cktest_aes_flavours_key2;
+		*count = ARRAY_SIZE(cktest_aes_flavours_key2);
+	}
+	if (ciph_case->key1 == ciph_data_aes_cts_vect1_key) {
+		*key = cktest_aes_flavours_key3;
+		*count = ARRAY_SIZE(cktest_aes_flavours_key3);
+	}
+
+	if (!*mechanism || !*key || !*count)
+		return 1;
+
+	return 0;
+}
+
 void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
@@ -2923,68 +2998,24 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
 		goto out;
 
 	for (n = 0; n < ARRAY_SIZE(ciph_cases); n++) {
-		CK_ATTRIBUTE_PTR ck_key1;
-		CK_MECHANISM_PTR mechanism;
-		CK_ULONG attr_count;
+		CK_ATTRIBUTE_PTR ck_key = NULL;
+		CK_MECHANISM_PTR mechanism = NULL;
+		CK_ULONG attr_count = 0;
 
-		mechanism = NULL;
-
-		switch (ciph_cases[n].algo) {
-		case TEE_ALG_AES_ECB_NOPAD:
-			mechanism = &cktest_aes_ecb_mechanism;
-			break;
-		case TEE_ALG_AES_CBC_NOPAD:
-			if (ciph_cases[n].iv == ciph_data_128_iv1)
-				mechanism = &cktest_aes_cbc_mechanism1;
-			if (ciph_cases[n].iv == ciph_data_aes_cbc_vect1_iv)
-				mechanism = &cktest_aes_cbc_mechanism2;
-			break;
-		case TEE_ALG_AES_CTS:
-			if (ciph_cases[n].iv == ciph_data_aes_cts_vect1_iv)
-				mechanism = &cktest_aes_cts_mechanism1;
-			if (ciph_cases[n].iv == ciph_data_aes_cts_issue1203_iv)
-				mechanism = &cktest_aes_cts_mechanism2;
-			break;
-		case TEE_ALG_AES_CTR:
-			if (ciph_cases[n].iv == ciph_data_128_iv1)
-				mechanism = &cktest_aes_ctr_mechanism1;
-			if (ciph_cases[n].iv == ciph_data_128_iv2)
-				mechanism = &cktest_aes_ctr_mechanism2;
-			break;
-		default:
+		if (get_ck_ciph_case(n, &mechanism, &ck_key, &attr_count)) {
+			Do_ADBG_Log("Skip case %u algo 0x%x line %u",
+				    n, (unsigned int)ciph_cases[n].algo,
+				    (unsigned int)ciph_cases[n].line);
 			continue;
 		}
 
-		ADBG_EXPECT_TRUE(c, mechanism != NULL);
-
-		ck_key1 = NULL;
-
-		if (ciph_cases[n].key1 == ciph_data_aes_key1) {
-			ck_key1 = cktest_aes_flavours_key1;
-			attr_count = ARRAY_SIZE(cktest_aes_flavours_key1);
-		}
-		if (ciph_cases[n].key1 == ciph_data_aes_key2) {
-			ck_key1 = cktest_aes_flavours_key4;
-			attr_count = ARRAY_SIZE(cktest_aes_flavours_key4);
-		}
-		if (ciph_cases[n].key1 == ciph_data_aes_cbc_vect1_key) {
-			ck_key1 = cktest_aes_flavours_key2;
-			attr_count = ARRAY_SIZE(cktest_aes_flavours_key2);
-		}
-		if (ciph_cases[n].key1 == ciph_data_aes_cts_vect1_key) {
-			ck_key1 = cktest_aes_flavours_key3;
-			attr_count = ARRAY_SIZE(cktest_aes_flavours_key3);
-		}
-
-		ADBG_EXPECT_TRUE(c, ck_key1 != NULL);
-
-		Do_ADBG_BeginSubCase(c, "Cipher case %d algo 0x%x (%s) line %d",
-				     (int)n, (unsigned int)ciph_cases[n].algo,
-				     ckm2str(mechanism->mechanism),
-				     (int)ciph_cases[n].line);
+		Do_ADBG_BeginSubCase(c, "Cipher case %u algo 0x%x (%s) line %u",
+					n, (unsigned int)ciph_cases[n].algo,
+					ckm2str(mechanism->mechanism),
+					(unsigned int)ciph_cases[n].line);
 		close_subcase = 1;
 
-		rv = C_CreateObject(session, ck_key1, attr_count, &key1_handle);
+		rv = C_CreateObject(session, ck_key, attr_count, &key1_handle);
 
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
