@@ -24,6 +24,7 @@
 #include <util.h>
 
 #include <pkcs11.h>
+#include <sks_ck_debug.h>
 
 #include "xtest_test.h"
 #include "xtest_helpers.h"
@@ -229,14 +230,59 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 			goto out;
 
+		if (level)
+			Do_ADBG_Log("Token #%u mechanism capabilities:", i);
+
 		for (j = 0; j < mecha_count; j++) {
-			CK_MECHANISM_TYPE type = *(mecha_types + j);
+			CK_MECHANISM_TYPE type = mecha_types[j];
 			CK_MECHANISM_INFO mecha_info;
+			size_t pos;
+			size_t k;
+			/* 1024byte should be enough, if not truncates  */
+			char log[1024] = { 0 };
 
 			rv = C_GetMechanismInfo(slot, type, &mecha_info);
 			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 				goto out;
+
+			/*  Verbose output on high levels */
+			if (level == 0)
+				continue;
+
+			pos = snprintf(&log[0], sizeof(log),
+					"%-30s Key size [%03lu %03lu]",
+					ckm2str(type),
+					mecha_info.ulMinKeySize,
+					mecha_info.ulMaxKeySize);
+
+			if (pos > sizeof(log)) {
+				Do_ADBG_Log("| Error: cannot display capabilities...");
+				continue;
+			}
+
+			if (!mecha_info.flags) {
+				Do_ADBG_Log("| %s\tAll flags disabled", &log[0]);
+				continue;
+			}
+
+			if (pos < sizeof(log))
+				pos += snprintf(&log[pos], sizeof(log) - pos,
+						"\tFlags: ");
+
+			for (k = 0; k < 32; k++) {
+				if (!(mecha_info.flags & (1UL << k)) ||
+				    pos >= sizeof(log))
+					continue;
+
+				pos += snprintf(&log[pos], sizeof(log) - pos,
+						"%s ",
+						ck_mecha_flag2str(1UL << k));
+			}
+			Do_ADBG_Log("| %s", &log[0]);
 		}
+
+		if (level)
+			Do_ADBG_Log("`--- end token mechanism capabilities");
 
 		free(mecha_types);
 		mecha_types = NULL;
