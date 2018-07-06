@@ -1231,12 +1231,13 @@ static CK_RV open_cipher_session(ADBG_Case_t *c,
 	case TEE_MODE_DECRYPT:
 		break;
 	default:
-		ADBG_EXPECT_TRUE(c, 0);
+		ADBG_EXPECT_TRUE(c, false);
+		return CKR_GENERAL_ERROR;
 	}
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, session);
 	if (rv == CKR_DEVICE_MEMORY)
-		return rv;
+		goto bail;
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
 		goto bail;
 
@@ -1278,7 +1279,7 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 
 	for (n = 0; n < ARRAY_SIZE(sessions); n++) {
 
-		rv = open_cipher_session(c, slot, sessions + n,
+		rv = open_cipher_session(c, slot, &sessions[n],
 					 cktest_allowed_valid[0].attr_key,
 					 cktest_allowed_valid[0].attr_count,
 					 cktest_allowed_valid[0].mechanism,
