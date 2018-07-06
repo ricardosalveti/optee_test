@@ -12,19 +12,18 @@
  * GNU General Public License for more details.
  */
 
-#include <stdio.h>
-#include <string.h>
+#include <assert.h>
 #include <inttypes.h>
 #include <malloc.h>
-
-#include <assert.h>
-#include <tee_api_types.h>
-#include <ta_crypt.h>
-#include <utee_defines.h>
-#include <util.h>
-
 #include <pkcs11.h>
 #include <sks_ck_debug.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ta_crypt.h>
+#include <tee_api_types.h>
+#include <utee_defines.h>
+#include <util.h>
 
 #include "xtest_test.h"
 #include "xtest_helpers.h"
@@ -141,23 +140,22 @@ static void xtest_tee_test_4101(ADBG_Case_t *c)
 	CK_RV rv;
 
 	rv = C_Initialize(NULL);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_Finalize(NULL);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_Initialize(NULL);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_Initialize(NULL);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
-					CKR_CRYPTOKI_ALREADY_INITIALIZED);
+	ADBG_EXPECT_CK_RESULT(c, CKR_CRYPTOKI_ALREADY_INITIALIZED, rv);
 
 	rv = C_Finalize(NULL);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4102(ADBG_Case_t *c)
@@ -175,26 +173,26 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 	CK_MECHANISM_TYPE_PTR mecha_types = NULL;
 
 	rv = C_Initialize(NULL);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_GetInfo(&lib_info);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto out;
 
 	rv = C_GetFunctionList(&ckfunc_list);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto out;
 
 	slot_count2 = 0;
 	rv = C_GetSlotList(0, NULL, &slot_count2);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto out;
 
 	slot_count = 0;
 
 	rv = C_GetSlotList(1, NULL, &slot_count);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto out;
 
 	slot_ids = calloc(slot_count, sizeof(CK_SLOT_ID));
@@ -202,7 +200,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 		goto out;
 
 	rv = C_GetSlotList(1, slot_ids, &slot_count);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto out;
 
 	for (i = 0; i < slot_count; i++) {
@@ -210,11 +208,11 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 		CK_ULONG mecha_count;
 
 		rv = C_GetSlotInfo(slot, &slot_info);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto out;
 
 		rv = C_GetTokenInfo(slot, &token_info);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto out;
 
 		mecha_count = 0;
@@ -227,7 +225,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 			goto out;
 
 		rv = C_GetMechanismList(slot, mecha_types, &mecha_count);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto out;
 
 		if (level)
@@ -242,7 +240,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 			char log[1024] = { 0 };
 
 			rv = C_GetMechanismInfo(slot, type, &mecha_info);
-			if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+			if (!ADBG_EXPECT_CK_OK(c, rv))
 				goto out;
 
 			/*  Verbose output on high levels */
@@ -256,7 +254,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 					mecha_info.ulMaxKeySize);
 
 			if (pos > sizeof(log)) {
-				Do_ADBG_Log("| Error: cannot display capabilities...");
+				Do_ADBG_Log("| Error: internal short buffer");
 				continue;
 			}
 
@@ -293,7 +291,7 @@ out:
 	free(mecha_types);
 
 	rv = C_Finalize(NULL);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4103(ADBG_Case_t *c)
@@ -304,34 +302,34 @@ static void xtest_tee_test_4103(ADBG_Case_t *c)
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	/* Open 3 sessions */
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[0]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[1]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[2]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Close 2 of them */
 	rv = C_CloseSession(session[0]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CloseSession(session[1]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Close all remaining sessions */
 	rv = C_CloseAllSessions(slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Should failed to close non existing session */
@@ -341,12 +339,12 @@ static void xtest_tee_test_4103(ADBG_Case_t *c)
 
 	/* Open a session, should be closed from library closure */
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session[0]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 bail:
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4104(ADBG_Case_t *c)
@@ -361,11 +359,11 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 	char label32[32];
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_GetTokenInfo(slot, &token_info);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	if (strlen(label) < 32) {
@@ -394,7 +392,7 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 			goto bail;
 
 		rv = C_GetTokenInfo(slot, &token_info);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
 		/* Token should have set CKF_SO_PIN_COUNT_LOW to 1 */
@@ -406,11 +404,11 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 
 		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin0, sizeof(pin0),
 				 (CK_UTF8CHAR_PTR)label32);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
 		rv = C_GetTokenInfo(slot, &token_info);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
 		/*
@@ -434,11 +432,11 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 
 		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin0, sizeof(pin0),
 				 (CK_UTF8CHAR_PTR)label32);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
 		rv = C_GetTokenInfo(slot, &token_info);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
 		if (!ADBG_EXPECT_TRUE(c, !!(token_info.flags &
@@ -454,10 +452,10 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 
 bail:
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-/* bad key type */
+/* Bad key type */
 static CK_ATTRIBUTE cktest_generate_gensecret_object_error1[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
 						sizeof(CK_OBJECT_CLASS) },
@@ -466,7 +464,7 @@ static CK_ATTRIBUTE cktest_generate_gensecret_object_error1[] = {
 	{ CKA_VALUE_LEN, &(CK_ULONG){16}, sizeof(CK_ULONG) },
 };
 
-/* missing VALUE_LEN */
+/* Missing VALUE_LEN */
 static CK_ATTRIBUTE cktest_generate_gensecret_object_error2[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
 						sizeof(CK_OBJECT_CLASS) },
@@ -475,7 +473,7 @@ static CK_ATTRIBUTE cktest_generate_gensecret_object_error2[] = {
 	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 };
 
-/* bad object class */
+/* Bad object class */
 static CK_ATTRIBUTE cktest_generate_gensecret_object_error3[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_DATA}, sizeof(CK_OBJECT_CLASS) },
 	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_GENERIC_SECRET},
@@ -529,11 +527,11 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/*
@@ -546,16 +544,15 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 			   cktest_generate_gensecret_object,
 			   ARRAY_SIZE(cktest_generate_gensecret_object),
 			   &obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism, obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
-					  CKR_KEY_FUNCTION_NOT_PERMITTED))
+	if (!ADBG_EXPECT_CK_RESULT(c, rv, CKR_KEY_FUNCTION_NOT_PERMITTED))
 		goto bail;
 
 	rv = C_DestroyObject(session, obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -598,30 +595,30 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 			   cktest_generate_aes_object,
 			   ARRAY_SIZE(cktest_generate_aes_object),
 			   &obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 
 	rv = C_EncryptInit(session, &cktest_aes_cbc_mechanism, obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_EncryptFinal(session, NULL, NULL);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_DestroyObject(session, obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static CK_ATTRIBUTE cktest_token_object[] = {
@@ -654,11 +651,11 @@ static void test_create_destroy_single_object(ADBG_Case_t *c, int persistent)
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	if (persistent)
@@ -670,20 +667,19 @@ static void test_create_destroy_single_object(ADBG_Case_t *c, int persistent)
 				    ARRAY_SIZE(cktest_session_object),
 				    &obj_hdl);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_DestroyObject(session, obj_hdl);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
-
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void test_create_destroy_session_objects(ADBG_Case_t *c)
@@ -696,11 +692,11 @@ static void test_create_destroy_session_objects(ADBG_Case_t *c)
 	size_t n;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	for (n = 0; n < ARRAY_SIZE(obj_hdl); n++) {
@@ -711,7 +707,7 @@ static void test_create_destroy_session_objects(ADBG_Case_t *c)
 		if (rv == CKR_DEVICE_MEMORY)
 			break;
 
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK)) {
+		if (!ADBG_EXPECT_CK_OK(c, rv)) {
 			n--;
 			break;
 		}
@@ -720,26 +716,25 @@ static void test_create_destroy_session_objects(ADBG_Case_t *c)
 	Do_ADBG_Log("    created object count: %zu", n);
 
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CreateObject(session, cktest_session_object,
 			    ARRAY_SIZE(cktest_session_object),
 			    obj_hdl);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
-
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4106(ADBG_Case_t *c)
@@ -768,14 +763,14 @@ static void test_create_objects_in_session(ADBG_Case_t *c, int readwrite)
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	if (readwrite)
 		session_flags |= CKF_RW_SESSION;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CreateObject(session, cktest_token_object,
@@ -783,11 +778,10 @@ static void test_create_objects_in_session(ADBG_Case_t *c, int readwrite)
 			    &token_obj_hld);
 
 	if (readwrite) {
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 	} else {
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
-						     CKR_SESSION_READ_ONLY))
+		if (!ADBG_EXPECT_CK_RESULT(c, rv, CKR_SESSION_READ_ONLY))
 			goto bail;
 	}
 
@@ -795,24 +789,24 @@ static void test_create_objects_in_session(ADBG_Case_t *c, int readwrite)
 			    ARRAY_SIZE(cktest_session_object),
 			    &session_obj_hld);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	if (readwrite)
 		rv = C_DestroyObject(session, token_obj_hld);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_DestroyObject(session, session_obj_hld);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4107(ADBG_Case_t *c)
@@ -960,11 +954,11 @@ static CK_RV cipher_init_final(ADBG_Case_t *c, CK_SESSION_HANDLE session,
 	case TEE_MODE_DECRYPT:
 		break;
 	default:
-		ADBG_EXPECT_TRUE(c, 0);
+		ADBG_EXPECT_TRUE(c, false);
 	}
 
 	rv = C_CreateObject(session, attr_key, attr_count, &object);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	if (mode == TEE_MODE_ENCRYPT)
@@ -972,7 +966,7 @@ static CK_RV cipher_init_final(ADBG_Case_t *c, CK_SESSION_HANDLE session,
 	if (mode == TEE_MODE_DECRYPT)
 		rv = C_DecryptInit(session, mechanism, object);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, expected_rc)) {
+	if (!ADBG_EXPECT_CK_RESULT(c, rv, expected_rc)) {
 		rv = CKR_GENERAL_ERROR;
 		goto bail;
 	}
@@ -991,7 +985,7 @@ static CK_RV cipher_init_final(ADBG_Case_t *c, CK_SESSION_HANDLE session,
 	}
 
 	rv = C_DestroyObject(session, object);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 bail:
@@ -1013,11 +1007,11 @@ static void xtest_tee_test_4108(ADBG_Case_t *c)
 	size_t n;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	for (n = 0; n < ARRAY_SIZE(cktest_allowed_valid); n++) {
@@ -1031,7 +1025,8 @@ static void xtest_tee_test_4108(ADBG_Case_t *c)
 					TEE_MODE_ENCRYPT,
 					CKR_OK);
 
-		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		ADBG_EXPECT_CK_OK(c, rv);
+
 		Do_ADBG_EndSubCase(c, NULL);
 		if (rv)
 			goto bail;
@@ -1048,7 +1043,8 @@ static void xtest_tee_test_4108(ADBG_Case_t *c)
 					TEE_MODE_ENCRYPT,
 					CKR_KEY_FUNCTION_NOT_PERMITTED);
 
-		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		ADBG_EXPECT_CK_OK(c, rv);
+
 		Do_ADBG_EndSubCase(c, NULL);
 		if (rv)
 			goto bail;
@@ -1057,10 +1053,10 @@ static void xtest_tee_test_4108(ADBG_Case_t *c)
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4109(ADBG_Case_t *c)
@@ -1071,11 +1067,11 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Encrypt only AES CTS key */
@@ -1085,7 +1081,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_cts_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_OK);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1094,7 +1090,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_cts_mechanism,
 				TEE_MODE_DECRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Decrypt only AES CTR key */
@@ -1104,7 +1100,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ctr_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1113,7 +1109,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ctr_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Encrypt only AES GCM key */
@@ -1123,7 +1119,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_gcm_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_OK);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1132,7 +1128,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_gcm_mechanism,
 				TEE_MODE_DECRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	/* Decrypt only AES CCM key */
@@ -1142,7 +1138,7 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ccm_mechanism,
 				TEE_MODE_DECRYPT,
 				CKR_OK);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = cipher_init_final(c, session,
@@ -1151,15 +1147,15 @@ static void xtest_tee_test_4109(ADBG_Case_t *c)
 				&cktest_aes_ccm_mechanism,
 				TEE_MODE_ENCRYPT,
 				CKR_KEY_FUNCTION_NOT_PERMITTED);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 /*
@@ -1178,13 +1174,13 @@ static void xtest_tee_test_4110(ADBG_Case_t *c)
 	CK_SLOT_ID slot;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	run_xtest_tee_test_4110(c, slot);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4111(ADBG_Case_t *c)
@@ -1193,13 +1189,13 @@ static void xtest_tee_test_4111(ADBG_Case_t *c)
 	CK_SLOT_ID slot;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	run_xtest_tee_test_4111(c, slot);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static void xtest_tee_test_4112(ADBG_Case_t *c)
@@ -1208,13 +1204,13 @@ static void xtest_tee_test_4112(ADBG_Case_t *c)
 	CK_SLOT_ID slot;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	run_xtest_tee_test_4112(c, slot);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static CK_RV open_cipher_session(ADBG_Case_t *c,
@@ -1238,13 +1234,13 @@ static CK_RV open_cipher_session(ADBG_Case_t *c,
 	rv = C_OpenSession(slot, session_flags, NULL, 0, session);
 	if (rv == CKR_DEVICE_MEMORY)
 		goto bail;
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CreateObject(*session, attr_key, attr_count, &object);
 	if (rv == CKR_DEVICE_MEMORY)
 		return rv;
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	if (mode == TEE_MODE_ENCRYPT)
@@ -1254,7 +1250,7 @@ static CK_RV open_cipher_session(ADBG_Case_t *c,
 
 	if (rv == CKR_DEVICE_MEMORY)
 		return rv;
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK)) {
+	if (!ADBG_EXPECT_CK_OK(c, rv)) {
 		rv = CKR_GENERAL_ERROR;
 		goto bail;
 	}
@@ -1274,7 +1270,7 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 		sessions[n] = CK_INVALID_HANDLE;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	for (n = 0; n < ARRAY_SIZE(sessions); n++) {
@@ -1289,7 +1285,7 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 		if (rv == CKR_DEVICE_MEMORY)
 			break;
 
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 	}
 
@@ -1300,11 +1296,11 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 
 	/* Closing session with out bound and invalid IDs (or negative ID) */
 	rv = C_CloseSession(sessions[n - 1] + 1024);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_SESSION_HANDLE_INVALID);
+	ADBG_EXPECT_CK_RESULT(c, rv, CKR_SESSION_HANDLE_INVALID);
 	rv = C_CloseSession(CK_INVALID_HANDLE);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_SESSION_HANDLE_INVALID);
+	ADBG_EXPECT_CK_RESULT(c, rv, CKR_SESSION_HANDLE_INVALID);
 	rv = C_CloseSession(~0);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_SESSION_HANDLE_INVALID);
+	ADBG_EXPECT_CK_RESULT(c, rv, CKR_SESSION_HANDLE_INVALID);
 
 	/* Closing each session: all related resources shall be free */
 	for (n = 0; n < ARRAY_SIZE(sessions); n++) {
@@ -1312,7 +1308,7 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 			continue;
 
 		rv = C_CloseSession(sessions[n]);
-		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		ADBG_EXPECT_CK_OK(c, rv);
 		sessions[n] = CK_INVALID_HANDLE;
 	}
 
@@ -1323,11 +1319,11 @@ static void xtest_tee_test_4113(ADBG_Case_t *c)
 				 cktest_allowed_valid[0].mechanism,
 				 TEE_MODE_ENCRYPT);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CloseSession(sessions[0]);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 	sessions[0] = CK_INVALID_HANDLE;
 
 bail:
@@ -1336,11 +1332,11 @@ bail:
 			continue;
 
 		rv = C_CloseSession(sessions[n]);
-		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		ADBG_EXPECT_CK_OK(c, rv);
 	}
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 }
 
 static CK_ATTRIBUTE cktest_object_pers_aes_dec[] = {
@@ -1433,32 +1429,32 @@ static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
 	CK_ULONG count = 1;
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 			    ARRAY_SIZE(cktest_findobj_pers_aes));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
-
 
 	while (1) {
 		rv = C_FindObjects(session, &obj_hdl, 1, &count);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 		if (!count)
 			break;
 
 		rv = C_DestroyObject(session, obj_hdl);
-		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+		ADBG_EXPECT_CK_OK(c, rv);
 	}
 
 	rv = C_FindObjectsFinal(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 bail:
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
+
 }
 
 static void xtest_tee_test_4114(ADBG_Case_t *c)
@@ -1478,7 +1474,7 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 		obj_found[n] = CK_INVALID_HANDLE;
 
 	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
 	/*
@@ -1487,42 +1483,42 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 	Do_ADBG_BeginSubCase(c, "Find created AES key objects");
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail0;
 
 	rv = C_CreateObject(session, cktest_object_aes_dec,
 			    ARRAY_SIZE(cktest_object_aes_dec),
 			    &obj_hdl[0]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CreateObject(session, cktest_object_aes_enc,
 			    ARRAY_SIZE(cktest_object_aes_enc),
 			    &obj_hdl[1]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CreateObject(session, cktest_object_pers_aes_dec,
 			    ARRAY_SIZE(cktest_object_pers_aes_dec),
 			    &obj_hdl[2]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_CreateObject(session, cktest_object_pers_aes_enc,
 			    ARRAY_SIZE(cktest_object_pers_aes_enc),
 			    &obj_hdl[3]);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjectsInit(session, cktest_findobj_aes_dec,
 				ARRAY_SIZE(cktest_findobj_aes_dec));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjects(session,
 			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 2) ||
 	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[0]) ||
 				 (obj_found[0] == obj_hdl[2])) ||
@@ -1531,7 +1527,7 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -1542,12 +1538,12 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjectsInit(session, cktest_findobj_aes_enc,
 				ARRAY_SIZE(cktest_findobj_aes_enc));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjects(session, obj_found, 1, &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
 	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[1]) ||
 				 (obj_found[0] == obj_hdl[3])))
@@ -1555,7 +1551,7 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjects(session, &obj_found[1], 1, &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
 	    !ADBG_EXPECT_TRUE(c, (obj_found[1] == obj_hdl[1]) ||
 				 (obj_found[1] == obj_hdl[3])) ||
@@ -1564,12 +1560,12 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjects(session, obj_found, 1, &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 0))
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -1580,19 +1576,19 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes_enc,
 				ARRAY_SIZE(cktest_findobj_pers_aes_enc));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjects(session,
 			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
 	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[3])))
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -1603,19 +1599,19 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjectsInit(session, cktest_findobj_sess_aes_enc,
 				ARRAY_SIZE(cktest_findobj_sess_aes_enc));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjects(session,
 			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 1) ||
 	    !ADBG_EXPECT_TRUE(c, (obj_found[0] == obj_hdl[1])))
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -1625,42 +1621,42 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 	Do_ADBG_BeginSubCase(c, "Find object from a new session");
 
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail0;
 
 	rv = C_FindObjectsInit(session, cktest_findobj_sess_aes_enc,
 				ARRAY_SIZE(cktest_findobj_sess_aes_enc));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjects(session,
 			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 0))
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 				ARRAY_SIZE(cktest_findobj_pers_aes));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjects(session,
 			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
 
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK) ||
+	if (!ADBG_EXPECT_CK_OK(c, rv) ||
 	    !ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 2))
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -1671,11 +1667,11 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 				ARRAY_SIZE(cktest_findobj_pers_aes));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjectsFinal(session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
@@ -1685,15 +1681,15 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 	Do_ADBG_BeginSubCase(c, "Various invalid invocation cases");
 
 	rv = C_FindObjectsFinal(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OPERATION_NOT_INITIALIZED);
+	ADBG_EXPECT_CK_RESULT(c, rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	rv = C_FindObjects(session,
 			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OPERATION_NOT_INITIALIZED);
+	ADBG_EXPECT_CK_RESULT(c, rv, CKR_OPERATION_NOT_INITIALIZED);
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 				ARRAY_SIZE(cktest_findobj_pers_aes));
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
@@ -1701,7 +1697,7 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK);
 
 	rv = C_FindObjectsFinal(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	rv = C_FindObjectsInit(session, cktest_findobj_no_class,
 				ARRAY_SIZE(cktest_findobj_no_class));
@@ -1709,7 +1705,7 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 				ARRAY_SIZE(cktest_findobj_pers_aes));
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	/*
 	 * Intentianlly do not finalize the active object search. It should
@@ -1718,13 +1714,13 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 bail:
 	/* TODO: destroy persistent objects!!! */
 	rv = C_CloseSession(session);
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 bail0:
 	destroy_persistent_objects(c, slot);
 
 	rv = close_lib();
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 	Do_ADBG_EndSubCase(c, NULL);
 }

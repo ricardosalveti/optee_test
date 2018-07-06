@@ -17,6 +17,10 @@
 #include <adbg.h>
 #include <tee_client_api.h>
 
+#ifdef CFG_SECURE_KEY_SERVICES
+#include <pkcs11.h>
+#endif
+
 ADBG_SUITE_DECLARE(benchmark);
 #ifdef WITH_GP_TESTS
 ADBG_SUITE_DECLARE(gp);
@@ -37,6 +41,17 @@ ADBG_ENUM_TABLE_DECLARE(TEEC_ErrorOrigin);
 
 #define ADBG_EXPECT_TEEC_ERROR_ORIGIN(c, exp, got) \
 	ADBG_EXPECT_ENUM(c, exp, got, ADBG_EnumTable_TEEC_ErrorOrigin)
+
+#ifdef CFG_SECURE_KEY_SERVICES
+/* CK_RV */
+ADBG_ENUM_TABLE_DECLARE(CK_RV);
+
+#define ADBG_EXPECT_CK_RESULT(c, exp, got) \
+	ADBG_EXPECT_ENUM(c, exp, got, ADBG_EnumTable_CK_RV)
+
+#define ADBG_EXPECT_CK_OK(c, got) \
+	ADBG_EXPECT_ENUM(c, CKR_OK, got, ADBG_EnumTable_CK_RV)
+#endif
 
 extern const char crypt_user_ta[];
 extern const unsigned int crypt_user_ta_size;
