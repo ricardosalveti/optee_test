@@ -1340,83 +1340,83 @@ bail:
 }
 
 static CK_ATTRIBUTE cktest_object_pers_aes_dec[] = {
-	{ CKA_DECRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VALUE, (void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
 };
 
 static CK_ATTRIBUTE cktest_object_pers_aes_enc[] = {
-	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VALUE, (void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
 };
 
 static CK_ATTRIBUTE cktest_object_aes_dec[]  = {
-	{ CKA_DECRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
-	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_VALUE, (void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
 };
 
 static CK_ATTRIBUTE cktest_object_aes_enc[] = {
-	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
-	{ CKA_VALUE,	(void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_VALUE, (void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
 };
 
 static CK_ATTRIBUTE cktest_findobj_aes_dec[] = {
-	{ CKA_DECRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
 };
 
 static CK_ATTRIBUTE cktest_findobj_aes_enc[] = {
-	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
 };
 
 static CK_ATTRIBUTE cktest_findobj_pers_aes_enc[] = {
-	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
 };
 
 static CK_ATTRIBUTE cktest_findobj_sess_aes_enc[] = {
-	{ CKA_ENCRYPT,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_TOKEN,	&(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
 };
 
 static CK_ATTRIBUTE cktest_findobj_pers_aes[] = {
-	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-	{ CKA_CLASS,	&(CK_OBJECT_CLASS){CKO_SECRET_KEY},
-						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
 };
 
 static CK_ATTRIBUTE cktest_findobj_no_class[] = {
-	{ CKA_TOKEN,	&(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
 };
 
 
