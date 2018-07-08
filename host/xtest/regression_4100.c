@@ -259,7 +259,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 			}
 
 			if (!mecha_info.flags) {
-				Do_ADBG_Log("| %s\tAll flags disabled", &log[0]);
+				Do_ADBG_Log("| %s\tAll flags down", &log[0]);
 				continue;
 			}
 
