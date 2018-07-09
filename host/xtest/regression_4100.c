@@ -347,16 +347,88 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
+/* Login currently as SO, uzer login not yet supported */
+static char test_token_so_pin[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+static char test_token_user_pin[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+static char test_token_label[32] = "sks test token";
+
+static CK_RV init_test_token(CK_SLOT_ID slot)
+{
+	return C_InitToken(slot,
+			   (CK_UTF8CHAR_PTR)test_token_so_pin,
+			   sizeof(test_token_so_pin),
+			   (CK_UTF8CHAR_PTR)test_token_label);
+}
+
+static CK_RV init_user_test_token(CK_SLOT_ID slot)
+{
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+	CK_SESSION_HANDLE session;
+	CK_RV rv;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (rv)
+		return rv;
+
+	rv = C_Login(session, CKU_USER,	(CK_UTF8CHAR_PTR)test_token_user_pin,
+					sizeof(test_token_user_pin));
+	if (rv == CKR_OK) {
+		C_Logout(session);
+		C_CloseSession(session);
+		return rv;
+	}
+
+	rv = C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
+					sizeof(test_token_so_pin));
+	if (rv) {
+		C_CloseSession(session);
+
+		rv = init_test_token(slot);
+		if (rv)
+			return rv;
+
+		rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+		if (rv)
+			return rv;
+
+		rv = C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
+					sizeof(test_token_so_pin));
+		if (rv) {
+			C_CloseSession(session);
+			return rv;
+		}
+	}
+
+	rv = C_InitPIN(session, (CK_UTF8CHAR_PTR)test_token_user_pin,
+				sizeof(test_token_user_pin));
+
+	C_Logout(session);
+	C_CloseSession(session);
+
+	return rv;
+}
+
+static CK_RV login_user_test_token(CK_SESSION_HANDLE session)
+{
+	return C_Login(session, CKU_USER, (CK_UTF8CHAR_PTR)test_token_user_pin,
+				sizeof(test_token_user_pin));
+}
+
+static CK_RV logout_test_token(CK_SESSION_HANDLE session)
+{
+	return C_Logout(session);
+}
+
 static void xtest_tee_test_4104(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
 	CK_TOKEN_INFO token_info;
-	char pin0[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-	char pin1[] = { 0, 1, 2, 3, 0, 5, 6, 7, 8, 9, 10 };
-	char pin2[] = { 0, 1, 2, 3, 4, 5, 6, 0, 8 };
-	char label[] = "sks test token";
 	char label32[32];
+	/* Same content as test_token_so_pin[] but 1 more byte */
+	char pin1[] = { 0, 1, 2, 3, 0, 5, 6, 7, 8, 9, 10 };
+	/* Same content as test_token_so_pin[] but 1 different byte */
+	char pin2[] = { 0, 1, 2, 3, 4, 5, 6, 0, 8 };
 
 	rv = init_lib_and_find_token_slot(&slot);
 	if (!ADBG_EXPECT_CK_OK(c, rv))
@@ -366,19 +438,18 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
-	if (strlen(label) < 32) {
-		int sz = strlen(label);
-
-		memcpy(label32, label, sz);
-		memset(&label32[sz], ' ', 32 - sz);
-	} else {
-		memcpy(label32, label, 32);
-	}
+	memcpy(label32, test_token_label, sizeof(label32));
 
 	if (token_info.flags & CKF_TOKEN_INITIALIZED) {
 
 		// "Token is already initialized.\n"
 		// TODO: skip this if token is about to lock
+
+		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)test_token_so_pin,
+				sizeof(test_token_so_pin) - 1,
+				 (CK_UTF8CHAR_PTR)label32);
+		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
+			goto bail;
 
 		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin1, sizeof(pin1),
 				 (CK_UTF8CHAR_PTR)label32);
@@ -402,8 +473,7 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 			goto bail;
 		}
 
-		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin0, sizeof(pin0),
-				 (CK_UTF8CHAR_PTR)label32);
+		rv = init_test_token(slot);
 		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
@@ -426,12 +496,35 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 			rv = CKR_GENERAL_ERROR;
 			goto bail;
 		}
+
+		rv = init_user_test_token(slot);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto bail;
+
+		rv = C_GetTokenInfo(slot, &token_info);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto bail;
+
+		if (!ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_COUNT_LOW)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_FINAL_TRY)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_LOCKED)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_TO_BE_CHANGED)) ||
+		    !ADBG_EXPECT_TRUE(c, !!(token_info.flags &
+						CKF_USER_PIN_INITIALIZED)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_ERROR_STATE))) {
+			rv = CKR_GENERAL_ERROR;
+			goto bail;
+		}
 	} else {
 		//("Token was not yet initialized.\n");
 		/*  We must provision the SO PIN */
 
-		rv = C_InitToken(slot, (CK_UTF8CHAR_PTR)pin0, sizeof(pin0),
-				 (CK_UTF8CHAR_PTR)label32);
+		rv = init_test_token(slot);
 		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto bail;
 
@@ -445,6 +538,32 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 						CKF_ERROR_STATE)) ||
 		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
 						CKF_USER_PIN_INITIALIZED))) {
+			rv = CKR_GENERAL_ERROR;
+			goto bail;
+		}
+
+		rv = init_user_test_token(slot);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto bail;
+
+		rv = C_GetTokenInfo(slot, &token_info);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto bail;
+
+		if (!ADBG_EXPECT_TRUE(c, !!(token_info.flags &
+						CKF_TOKEN_INITIALIZED)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_COUNT_LOW)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_FINAL_TRY)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_LOCKED)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_USER_PIN_TO_BE_CHANGED)) ||
+		    !ADBG_EXPECT_TRUE(c, !!(token_info.flags &
+						CKF_USER_PIN_INITIALIZED)) ||
+		    !ADBG_EXPECT_TRUE(c, !(token_info.flags &
+						CKF_ERROR_STATE))) {
 			rv = CKR_GENERAL_ERROR;
 			goto bail;
 		}
@@ -1339,6 +1458,34 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
+static CK_ATTRIBUTE cktest_object_aes_private[] = {
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_PRIVATE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_EXTRACTABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
+	{ CKA_COPYABLE, &(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VALUE, (void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+};
+
+static CK_ATTRIBUTE cktest_object_aes_sensitive[] = {
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_SENSITIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_EXTRACTABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
+	{ CKA_COPYABLE, &(CK_BBOOL){CK_FALSE}, sizeof(CK_BBOOL) },
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VALUE, (void *)cktest_aes128_key, sizeof(cktest_aes128_key) },
+};
+
 static CK_ATTRIBUTE cktest_object_pers_aes_dec[] = {
 	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
@@ -1428,9 +1575,18 @@ static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
 	CK_OBJECT_HANDLE obj_hdl = CK_INVALID_HANDLE;
 	CK_ULONG count = 1;
 
+	rv = init_user_test_token(slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		return;
+
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
 	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
+
+	/* Login to destroy private objects */
+	rv = login_user_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 			    ARRAY_SIZE(cktest_findobj_pers_aes));
@@ -1451,10 +1607,12 @@ static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
 	rv = C_FindObjectsFinal(session);
 	ADBG_EXPECT_CK_OK(c, rv);
 
+	rv = logout_test_token(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
 bail:
 	rv = C_CloseSession(session);
 	ADBG_EXPECT_CK_OK(c, rv);
-
 }
 
 static void xtest_tee_test_4114(ADBG_Case_t *c)
@@ -1725,6 +1883,151 @@ bail0:
 	Do_ADBG_EndSubCase(c, NULL);
 }
 
+static void xtest_tee_test_4115(ADBG_Case_t *c)
+{
+	CK_RV rv;
+	CK_SLOT_ID slot;
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_OBJECT_HANDLE obj_hdl[10];
+	CK_OBJECT_HANDLE obj_found[10];
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+	CK_ULONG hdl_count;
+	size_t n;
+
+	for (n = 0; n < ARRAY_SIZE(obj_hdl); n++)
+		obj_hdl[n] = CK_INVALID_HANDLE;
+	for (n = 0; n < ARRAY_SIZE(obj_found); n++)
+		obj_found[n] = CK_INVALID_HANDLE;
+
+	/* Create test setup; persistent objects, user log support */
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		return;
+
+	rv = init_user_test_token(slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail0;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail0;
+
+	rv = C_CreateObject(session, cktest_object_aes_sensitive,
+			    ARRAY_SIZE(cktest_object_aes_sensitive),
+			    &obj_hdl[4]);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_CreateObject(session, cktest_object_aes_private,
+			    ARRAY_SIZE(cktest_object_aes_private),
+			    &obj_hdl[0]);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_CreateObject(session, cktest_object_pers_aes_enc,
+			    ARRAY_SIZE(cktest_object_pers_aes_enc),
+			    &obj_hdl[1]);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = close_lib();
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	/*
+	 * Not logged: find (public) objects
+	 */
+
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		return;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail0;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_aes_enc,
+				ARRAY_SIZE(cktest_findobj_aes_enc));
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	ADBG_EXPECT_CK_OK(c, rv);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 2);
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = close_lib();
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	/*
+	 * Login and find (public and private) objects
+	 */
+
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		return;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail0;
+
+	rv = login_user_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_aes_enc,
+				ARRAY_SIZE(cktest_findobj_aes_enc));
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	ADBG_EXPECT_CK_OK(c, rv);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 3);
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	/*
+	 * Logout and find (public only) objects
+	 */
+
+	rv = logout_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_FindObjectsInit(session, cktest_findobj_aes_enc,
+				ARRAY_SIZE(cktest_findobj_aes_enc));
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_FindObjects(session,
+			   obj_found, ARRAY_SIZE(obj_found), &hdl_count);
+
+	ADBG_EXPECT_CK_OK(c, rv);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, hdl_count, ==, 2);
+
+	rv = C_FindObjectsFinal(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+bail:
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+bail0:
+	destroy_persistent_objects(c, slot);
+
+	rv = close_lib();
+	ADBG_EXPECT_CK_OK(c, rv);
+}
+
 
 ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
 		"PKCS11: Initialize and close Cryptoki library");
@@ -1754,3 +2057,5 @@ ADBG_CASE_DEFINE(regression, 4113, xtest_tee_test_4113, /*  TODO: rename 4110 */
 		"PKCS11: Check operations release at session closure");
 ADBG_CASE_DEFINE(regression, 4114, xtest_tee_test_4114,
 		"PKCS11: Object lookup");
+ADBG_CASE_DEFINE(regression, 4115, xtest_tee_test_4115,
+		"PKCS11: Private object accesses");
