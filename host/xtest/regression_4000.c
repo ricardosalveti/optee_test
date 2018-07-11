@@ -5306,61 +5306,65 @@ static bool generate_and_test_key(ADBG_Case_t *c, TEEC_Session *s,
 	return ret_val;
 }
 
+static const struct {
+	unsigned level;
+	const char *name;
+	uint32_t key_type;
+	uint32_t quanta;
+	uint32_t min_size;
+	uint32_t max_size;
+} keygen_noparams_key_types[] = {
+	{ 0, "AES", TEE_TYPE_AES, 64, 128,
+	  256 /* valid sizes 128, 192, 256 */ },
+	{ 0, "DES", TEE_TYPE_DES, 56, 56, 56 /* valid size 56 */ },
+	{ 0, "DES3", TEE_TYPE_DES3, 56, 112,
+	  168 /* valid sizes 112, 168 */ },
+	{ 0, "HMAC-MD5", TEE_TYPE_HMAC_MD5, 8, 64, 512 },
+	{ 0, "HMAC-SHA1", TEE_TYPE_HMAC_SHA1, 8, 80, 512 },
+	{ 0, "HMAC-SHA224", TEE_TYPE_HMAC_SHA224, 8, 112, 512 },
+	{ 0, "HMAC-SHA256", TEE_TYPE_HMAC_SHA256, 8, 192, 1024 },
+	{ 0, "HMAC-SHA384", TEE_TYPE_HMAC_SHA384, 8, 256, 1024 },
+	{ 0, "HMAC-SHA512", TEE_TYPE_HMAC_SHA512, 8, 256, 1024 },
+	{ 0, "Generic secret", TEE_TYPE_GENERIC_SECRET, 8, 128, 4096 },
+	{ 1, "RSA-2048", TEE_TYPE_RSA_KEYPAIR, 1, 2048, 2048 },
+
+	/* New tests added to check non-regression of issue #5398 */
+	{ 0, "RSA-256", TEE_TYPE_RSA_KEYPAIR, 1, 256, 256 },
+	{ 1, "RSA-384", TEE_TYPE_RSA_KEYPAIR, 1, 384, 384 },
+	{ 1, "RSA-512", TEE_TYPE_RSA_KEYPAIR, 1, 512, 512 },
+	{ 1, "RSA-640", TEE_TYPE_RSA_KEYPAIR, 1, 640, 640 },
+	{ 1, "RSA-768", TEE_TYPE_RSA_KEYPAIR, 1, 768, 768 },
+	{ 1, "RSA-896", TEE_TYPE_RSA_KEYPAIR, 1, 896, 896 },
+	{ 1, "RSA-1024", TEE_TYPE_RSA_KEYPAIR, 1, 1024, 1024 },
+};
+
 static void xtest_test_keygen_noparams(ADBG_Case_t *c, TEEC_Session *session)
 {
 	size_t n;
 	uint32_t key_size;
-	static const struct {
-		unsigned level;
-		const char *name;
-		uint32_t key_type;
-		uint32_t quanta;
-		uint32_t min_size;
-		uint32_t max_size;
-	} key_types[] = {
-		{ 0, "AES", TEE_TYPE_AES, 64, 128,
-		  256 /* valid sizes 128, 192, 256 */ },
-		{ 0, "DES", TEE_TYPE_DES, 56, 56, 56 /* valid size 56 */ },
-		{ 0, "DES3", TEE_TYPE_DES3, 56, 112,
-		  168 /* valid sizes 112, 168 */ },
-		{ 0, "HMAC-MD5", TEE_TYPE_HMAC_MD5, 8, 64, 512 },
-		{ 0, "HMAC-SHA1", TEE_TYPE_HMAC_SHA1, 8, 80, 512 },
-		{ 0, "HMAC-SHA224", TEE_TYPE_HMAC_SHA224, 8, 112, 512 },
-		{ 0, "HMAC-SHA256", TEE_TYPE_HMAC_SHA256, 8, 192, 1024 },
-		{ 0, "HMAC-SHA384", TEE_TYPE_HMAC_SHA384, 8, 256, 1024 },
-		{ 0, "HMAC-SHA512", TEE_TYPE_HMAC_SHA512, 8, 256, 1024 },
-		{ 0, "Generic secret", TEE_TYPE_GENERIC_SECRET, 8, 128, 4096 },
-		{ 1, "RSA-2048", TEE_TYPE_RSA_KEYPAIR, 1, 2048, 2048 },
 
-		/* New tests added to check non-regression of issue #5398 */
-		{ 0, "RSA-256", TEE_TYPE_RSA_KEYPAIR, 1, 256, 256 },
-		{ 1, "RSA-384", TEE_TYPE_RSA_KEYPAIR, 1, 384, 384 },
-		{ 1, "RSA-512", TEE_TYPE_RSA_KEYPAIR, 1, 512, 512 },
-		{ 1, "RSA-640", TEE_TYPE_RSA_KEYPAIR, 1, 640, 640 },
-		{ 1, "RSA-768", TEE_TYPE_RSA_KEYPAIR, 1, 768, 768 },
-		{ 1, "RSA-896", TEE_TYPE_RSA_KEYPAIR, 1, 896, 896 },
-		{ 1, "RSA-1024", TEE_TYPE_RSA_KEYPAIR, 1, 1024, 1024 },
-	};
+	for (n = 0; n < ARRAY_SIZE(keygen_noparams_key_types); n++) {
+		uint32_t min_size = keygen_noparams_key_types[n].min_size;
+		uint32_t max_size = keygen_noparams_key_types[n].max_size;
+		uint32_t quanta = keygen_noparams_key_types[n].quanta;
 
-	for (n = 0; n < ARRAY_SIZE(key_types); n++) {
-		uint32_t min_size = key_types[n].min_size;
-		uint32_t max_size = key_types[n].max_size;
-		uint32_t quanta = key_types[n].quanta;
-
-		if (key_types[n].level > level)
+		if (keygen_noparams_key_types[n].level > level)
 			continue;
 
-		Do_ADBG_BeginSubCase(c, "Generate %s key", key_types[n].name);
+		Do_ADBG_BeginSubCase(c, "Generate %s key",
+					keygen_noparams_key_types[n].name);
 
 		for (key_size = min_size; key_size <= max_size;
 		     key_size += quanta) {
 			if (!ADBG_EXPECT_TRUE(c,
-				generate_and_test_key(c, session, key_types
-					[n].key_type, 1, key_size, NULL, 0)))
+				   generate_and_test_key(c, session,
+					keygen_noparams_key_types[n].key_type,
+					1, key_size, NULL, 0)))
 				break;
 		}
 
-		Do_ADBG_EndSubCase(c, "Generate %s key", key_types[n].name);
+		Do_ADBG_EndSubCase(c, "Generate %s key",
+					keygen_noparams_key_types[n].name);
 	}
 }
 
