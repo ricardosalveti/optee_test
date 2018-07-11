@@ -1738,9 +1738,9 @@ out:
 
 #ifdef CFG_SECURE_KEY_SERVICES
 /*
- * The test below belongs to the regression 41xx test. As it rely on test
- * vectors define for the 40xx test, this test sequence in implemented here.
- * The test below check compliance of crypto algorithms called throug the SKS
+ * The test below belongs to the regression 41xx test. As it relies on test
+ * vectors defined for the 40xx test, this test sequence in implemented here.
+ * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
 void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot);
@@ -1983,7 +1983,7 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
 
 	rv = C_OpenSession(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION,
 			   NULL, 0, &session);
-	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto out;
 
 	for (n = 0; n < ARRAY_SIZE(mac_cases); n++) {
@@ -2842,9 +2842,9 @@ out:
 
 #ifdef CFG_SECURE_KEY_SERVICES
 /*
- * The test below belongs to the regression 41xx test. As it rely on test
- * vectors define for the 40xx test, this test sequence in implemented here.
- * The test below check compliance of crypto algorithms called throug the SKS
+ * The test below belongs to the regression 41xx test. As it relies on test
+ * vectors defined for the 40xx test, this test sequence in implemented here.
+ * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
 void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot);
@@ -2854,9 +2854,9 @@ void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot);
 		{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) }, \
 		{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) }, \
 		{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_AES},		\
-						sizeof(CK_KEY_TYPE) },	\
+						sizeof(CK_KEY_TYPE) },  \
 		{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},	\
-						sizeof(CK_OBJECT_CLASS) }, \
+					    sizeof(CK_OBJECT_CLASS) }, \
 		{ CKA_VALUE, (void *)_key_array, sizeof(_key_array) }, \
 	}
 
@@ -3387,9 +3387,9 @@ out:
 
 #ifdef CFG_SECURE_KEY_SERVICES
 /*
- * The test below belongs to the regression 41xx test. As it rely on test
- * vectors define for the 40xx test, this test sequence in implemented here.
- * The test below check compliance of crypto algorithms called throug the SKS
+ * The test below belongs to the regression 41xx test. As it relies on test
+ * vectors defined for the 40xx test, this test sequence in implemented here.
+ * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
 void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot);
