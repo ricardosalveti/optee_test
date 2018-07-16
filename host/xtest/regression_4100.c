@@ -124,8 +124,8 @@ static CK_RV init_lib_and_find_token_slot(CK_SLOT_ID *slot)
 	if (rv)
 		goto bail;
 
-	/* Use the 1st slot */
-	*slot = *slots;
+	/* Use the last slot */
+	*slot = slots[count - 1];
 
 bail:
 	free(slots);
