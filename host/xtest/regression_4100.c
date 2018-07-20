@@ -510,6 +510,8 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 	char pin1[] = { 0, 1, 2, 3, 0, 5, 6, 7, 8, 9, 10 };
 	/* Same content as test_token_so_pin[] but 1 different byte */
 	char pin2[] = { 0, 1, 2, 3, 4, 5, 6, 0, 8 };
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 
 	rv = init_lib_and_find_token_slot(&slot);
 	if (!ADBG_EXPECT_CK_OK(c, rv))
@@ -522,6 +524,8 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 	memcpy(label32, test_token_label, sizeof(label32));
 
 	if (token_info.flags & CKF_TOKEN_INITIALIZED) {
+
+		Do_ADBG_BeginSubCase(c, "Init already initialized token");
 
 		// "Token is already initialized.\n"
 		// TODO: skip this if token is about to lock
@@ -601,9 +605,12 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 			rv = CKR_GENERAL_ERROR;
 			goto bail;
 		}
+
 	} else {
 		//("Token was not yet initialized.\n");
 		/*  We must provision the SO PIN */
+
+		Do_ADBG_BeginSubCase(c, "Init brand new token");
 
 		rv = init_test_token(slot);
 		if (!ADBG_EXPECT_CK_OK(c, rv))
@@ -650,7 +657,88 @@ static void xtest_tee_test_4104(ADBG_Case_t *c)
 		}
 	}
 
+	rv = close_lib();
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	Do_ADBG_EndSubCase(c, NULL);
+
+	/* Test login support */
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		return;
+
+	Do_ADBG_BeginSubCase(c, "Valid and invalid login/logout tests");
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	/* Logout: should fail as we did not log in yet */
+	rv = logout_test_token(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_USER_NOT_LOGGED_IN);
+
+	/* Login/re-log/logout user */
+	rv = login_user_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = login_user_test_token(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_USER_ALREADY_LOGGED_IN);
+
+	rv = logout_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	/* Login/re-log/logout security officer */
+	rv = login_so_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = login_so_test_token(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_USER_ALREADY_LOGGED_IN);
+
+	rv = logout_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	/* Login user then so and reverse */
+	rv = login_so_test_token(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	rv = login_user_test_token(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
+					CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
+
+	rv = logout_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = login_user_test_token(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	rv = login_so_test_token(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==,
+					CKR_USER_ANOTHER_ALREADY_LOGGED_IN);
+
+	rv = logout_test_token(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	/* Login context specifc, in an invalid case (need an operation) */
+	rv = login_context_test_token(session);
+	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OPERATION_NOT_INITIALIZED);
+
+	/* TODO: login user, set pin, logout login old/new pin, restore PIN */
+
+	/* TODO: login SO, set pin, logout login old/new pin, restore PIN */
+
+	/* TODO: set pin (not logged), login old/new pin, restore PIN */
+
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
 bail:
+	Do_ADBG_EndSubCase(c, NULL);
+
 	rv = close_lib();
 	ADBG_EXPECT_CK_OK(c, rv);
 }
@@ -1602,12 +1690,6 @@ static CK_ATTRIBUTE cktest_findobj_pers_aes[] = {
 			sizeof(CK_OBJECT_CLASS) },
 };
 
-static CK_ATTRIBUTE cktest_findobj_no_class[] = {
-	{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_AES}, sizeof(CK_KEY_TYPE) },
-};
-
-
 static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	uint32_t rv;
@@ -1900,10 +1982,6 @@ static void xtest_tee_test_4114(ADBG_Case_t *c)
 
 	rv = C_FindObjectsFinal(session);
 	ADBG_EXPECT_CK_OK(c, rv);
-
-	rv = C_FindObjectsInit(session, cktest_findobj_no_class,
-				ARRAY_SIZE(cktest_findobj_no_class));
-	ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK);
 
 	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
 				ARRAY_SIZE(cktest_findobj_pers_aes));
