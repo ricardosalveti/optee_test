@@ -1574,6 +1574,9 @@ static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
 	CK_OBJECT_HANDLE obj_hdl = CK_INVALID_HANDLE;
 	CK_ULONG count = 1;
+	CK_ATTRIBUTE cktest_find_all_token_objs[] = {
+		{ CKA_TOKEN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	};
 
 	rv = init_user_test_token(slot);
 	if (!ADBG_EXPECT_CK_OK(c, rv))
@@ -1588,8 +1591,8 @@ static void destroy_persistent_objects(ADBG_Case_t *c, CK_SLOT_ID slot)
 	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
-	rv = C_FindObjectsInit(session, cktest_findobj_pers_aes,
-			    ARRAY_SIZE(cktest_findobj_pers_aes));
+	rv = C_FindObjectsInit(session, cktest_find_all_token_objs,
+			    ARRAY_SIZE(cktest_find_all_token_objs));
 	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
