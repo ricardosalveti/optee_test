@@ -217,7 +217,7 @@ static void xtest_tee_test_4102(ADBG_Case_t *c)
 
 		mecha_count = 0;
 		rv = C_GetMechanismList(slot, NULL, &mecha_count);
-		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, ==, CKR_OK))
+		if (!ADBG_EXPECT_CK_OK(c, rv))
 			goto out;
 
 		mecha_types = calloc(mecha_count, sizeof(CK_MECHANISM_TYPE));
