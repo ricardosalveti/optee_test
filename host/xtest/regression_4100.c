@@ -135,6 +135,159 @@ bail:
 	return rv;
 }
 
+/* Login currently as SO, uzer login not yet supported */
+static char test_token_so_pin[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
+static char test_token_user_pin[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
+static char test_token_label[32] = "sks test token";
+
+static CK_RV init_test_token(CK_SLOT_ID slot)
+{
+	return C_InitToken(slot,
+			   (CK_UTF8CHAR_PTR)test_token_so_pin,
+			   sizeof(test_token_so_pin),
+			   (CK_UTF8CHAR_PTR)test_token_label);
+}
+
+static CK_RV init_user_test_token(CK_SLOT_ID slot)
+{
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+	CK_SESSION_HANDLE session;
+	CK_RV rv;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (rv)
+		return rv;
+
+	rv = C_Login(session, CKU_USER,	(CK_UTF8CHAR_PTR)test_token_user_pin,
+					sizeof(test_token_user_pin));
+	if (rv == CKR_OK) {
+		C_Logout(session);
+		C_CloseSession(session);
+		return rv;
+	}
+
+	rv = C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
+					sizeof(test_token_so_pin));
+	if (rv) {
+		C_CloseSession(session);
+
+		rv = init_test_token(slot);
+		if (rv)
+			return rv;
+
+		rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+		if (rv)
+			return rv;
+
+		rv = C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
+					sizeof(test_token_so_pin));
+		if (rv) {
+			C_CloseSession(session);
+			return rv;
+		}
+	}
+
+	rv = C_InitPIN(session, (CK_UTF8CHAR_PTR)test_token_user_pin,
+				sizeof(test_token_user_pin));
+
+	C_Logout(session);
+	C_CloseSession(session);
+
+	return rv;
+}
+
+CK_RV login_so_test_token(CK_SESSION_HANDLE session);
+CK_RV login_so_test_token(CK_SESSION_HANDLE session)
+{
+	return C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
+				sizeof(test_token_so_pin));
+}
+
+CK_RV login_user_test_token(CK_SESSION_HANDLE session);
+CK_RV login_user_test_token(CK_SESSION_HANDLE session)
+{
+	return C_Login(session, CKU_USER, (CK_UTF8CHAR_PTR)test_token_user_pin,
+				sizeof(test_token_user_pin));
+}
+
+CK_RV login_context_test_token(CK_SESSION_HANDLE session);
+CK_RV login_context_test_token(CK_SESSION_HANDLE session)
+{
+	return C_Login(session, CKU_CONTEXT_SPECIFIC,
+			(CK_UTF8CHAR_PTR)test_token_user_pin,
+			sizeof(test_token_user_pin));
+}
+
+CK_RV logout_test_token(CK_SESSION_HANDLE session);
+CK_RV logout_test_token(CK_SESSION_HANDLE session)
+{
+	return C_Logout(session);
+}
+
+/*
+ * The test below belongs to the regression 41xx test. As it rely on test
+ * vectors define for the 40xx test, this test sequence in implemented here.
+ * The test below check compliance of crypto algorithms called throug the SKS
+ * PKCS#11 interface.
+ */
+void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot);
+
+static void cktest_in_regression_40xx(ADBG_Case_t *c, int test_id)
+{
+	CK_RV rv;
+	CK_SLOT_ID slot;
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_FLAGS session_flags = CKF_SERIAL_SESSION;
+
+	rv = init_lib_and_find_token_slot(&slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		return;
+
+	rv = init_user_test_token(slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	rv = login_user_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	switch (test_id) {
+	case 4110:
+		run_xtest_tee_test_4110(c, slot);
+		break;
+	case 4111:
+		run_xtest_tee_test_4111(c, slot);
+		break;
+	case 4112:
+		run_xtest_tee_test_4112(c, slot);
+		break;
+	case 4116:
+		run_xtest_tee_test_4116(c, slot);
+		break;
+	case 4117:
+		run_xtest_tee_test_4117(c, slot);
+		break;
+	default:
+		ADBG_EXPECT_TRUE(c, false);
+		break;
+	}
+
+bail:
+	if (session != CK_INVALID_HANDLE) {
+		logout_test_token(session);
+		C_CloseSession(session);
+	}
+	close_lib();
+}
+
 static void xtest_tee_test_4101(ADBG_Case_t *c)
 {
 	CK_RV rv;
@@ -345,78 +498,6 @@ static void xtest_tee_test_4103(ADBG_Case_t *c)
 bail:
 	rv = close_lib();
 	ADBG_EXPECT_CK_OK(c, rv);
-}
-
-/* Login currently as SO, uzer login not yet supported */
-static char test_token_so_pin[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
-static char test_token_user_pin[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-static char test_token_label[32] = "sks test token";
-
-static CK_RV init_test_token(CK_SLOT_ID slot)
-{
-	return C_InitToken(slot,
-			   (CK_UTF8CHAR_PTR)test_token_so_pin,
-			   sizeof(test_token_so_pin),
-			   (CK_UTF8CHAR_PTR)test_token_label);
-}
-
-static CK_RV init_user_test_token(CK_SLOT_ID slot)
-{
-	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
-	CK_SESSION_HANDLE session;
-	CK_RV rv;
-
-	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (rv)
-		return rv;
-
-	rv = C_Login(session, CKU_USER,	(CK_UTF8CHAR_PTR)test_token_user_pin,
-					sizeof(test_token_user_pin));
-	if (rv == CKR_OK) {
-		C_Logout(session);
-		C_CloseSession(session);
-		return rv;
-	}
-
-	rv = C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
-					sizeof(test_token_so_pin));
-	if (rv) {
-		C_CloseSession(session);
-
-		rv = init_test_token(slot);
-		if (rv)
-			return rv;
-
-		rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-		if (rv)
-			return rv;
-
-		rv = C_Login(session, CKU_SO, (CK_UTF8CHAR_PTR)test_token_so_pin,
-					sizeof(test_token_so_pin));
-		if (rv) {
-			C_CloseSession(session);
-			return rv;
-		}
-	}
-
-	rv = C_InitPIN(session, (CK_UTF8CHAR_PTR)test_token_user_pin,
-				sizeof(test_token_user_pin));
-
-	C_Logout(session);
-	C_CloseSession(session);
-
-	return rv;
-}
-
-static CK_RV login_user_test_token(CK_SESSION_HANDLE session)
-{
-	return C_Login(session, CKU_USER, (CK_UTF8CHAR_PTR)test_token_user_pin,
-				sizeof(test_token_user_pin));
-}
-
-static CK_RV logout_test_token(CK_SESSION_HANDLE session)
-{
-	return C_Logout(session);
 }
 
 static void xtest_tee_test_4104(ADBG_Case_t *c)
@@ -1277,59 +1358,19 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-/*
- * The test below belongs to the regression 41xx test. As it rely on test
- * vectors define for the 40xx test, this test sequence in implemented here.
- * The test below check compliance of crypto algorithms called throug the SKS
- * PKCS#11 interface.
- */
-void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot);
-
 static void xtest_tee_test_4110(ADBG_Case_t *c)
 {
-	CK_RV rv;
-	CK_SLOT_ID slot;
-
-	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		return;
-
-	run_xtest_tee_test_4110(c, slot);
-
-	rv = close_lib();
-	ADBG_EXPECT_CK_OK(c, rv);
+	cktest_in_regression_40xx(c, 4110);
 }
 
 static void xtest_tee_test_4111(ADBG_Case_t *c)
 {
-	CK_RV rv;
-	CK_SLOT_ID slot;
-
-	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		return;
-
-	run_xtest_tee_test_4111(c, slot);
-
-	rv = close_lib();
-	ADBG_EXPECT_CK_OK(c, rv);
+	cktest_in_regression_40xx(c, 4111);
 }
 
 static void xtest_tee_test_4112(ADBG_Case_t *c)
 {
-	CK_RV rv;
-	CK_SLOT_ID slot;
-
-	rv = init_lib_and_find_token_slot(&slot);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		return;
-
-	run_xtest_tee_test_4112(c, slot);
-
-	rv = close_lib();
-	ADBG_EXPECT_CK_OK(c, rv);
+	cktest_in_regression_40xx(c, 4112);
 }
 
 static CK_RV open_cipher_session(ADBG_Case_t *c,
