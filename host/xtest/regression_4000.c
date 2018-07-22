@@ -6148,7 +6148,13 @@ static void cktest_keygen_noparams(ADBG_Case_t *c, CK_SLOT_ID slot)
 			case TEE_TYPE_HMAC_SHA384:
 			case TEE_TYPE_HMAC_SHA512:
 			case TEE_TYPE_GENERIC_SECRET:
-				ck_key_size = key_size;
+				/* Most PKCS#11 keys are length in bytes */
+				if (keygen_noparams_key_types[n].key_type ==
+				    TEE_TYPE_GENERIC_SECRET)
+					ck_key_size = key_size;
+				else
+					ck_key_size = key_size / 8;
+
 				if (set_ck_attr(ck_attrs, ck_count, CKA_VALUE_LEN,
 						(void *)&ck_key_size,
 						sizeof(ck_key_size)))

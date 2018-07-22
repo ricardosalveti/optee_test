@@ -767,7 +767,7 @@ static CK_ATTRIBUTE cktest_generate_gensecret_object_error3[] = {
 	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_GENERIC_SECRET},
 						sizeof(CK_KEY_TYPE) },
 	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_VALUE_LEN, &(CK_ULONG){16}, sizeof(CK_ULONG) },
+	{ CKA_VALUE_LEN, &(CK_ULONG){16 * 8}, sizeof(CK_ULONG) },
 };
 
 /* Valid template to generate a generic secret */
@@ -781,7 +781,7 @@ static CK_ATTRIBUTE cktest_generate_gensecret_object[] = {
 	{ CKA_COPYABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_MODIFIABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_EXTRACTABLE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
-	{ CKA_VALUE_LEN, &(CK_ULONG){16}, sizeof(CK_ULONG) },
+	{ CKA_VALUE_LEN, &(CK_ULONG){16 * 8}, sizeof(CK_ULONG) },
 };
 
 /* Valid template to generate an all AES purpose key */
