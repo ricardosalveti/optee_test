@@ -784,7 +784,7 @@ static CK_ATTRIBUTE cktest_generate_gensecret_object[] = {
 	{ CKA_VALUE_LEN, &(CK_ULONG){16}, sizeof(CK_ULONG) },
 };
 
-/*  Valid template to generate an all AES purpose key */
+/* Valid template to generate an all AES purpose key */
 static CK_ATTRIBUTE cktest_generate_aes_object[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
 						sizeof(CK_OBJECT_CLASS) },
@@ -797,13 +797,131 @@ static CK_ATTRIBUTE cktest_generate_aes_object[] = {
 	{ CKA_VALUE_LEN, &(CK_ULONG){16}, sizeof(CK_ULONG) },
 };
 
-static CK_MECHANISM mecha_generate_gensecret = {
-	CKM_GENERIC_SECRET_KEY_GEN, NULL, 0
+/* Valid template to generate an ECC key pair */
+static CK_ATTRIBUTE cktest_generate_ecc_pubkey[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_EC}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ID, &(CK_ULONG){1}, sizeof(CK_ULONG) },
+	{ CKA_EC_PARAMS, NULL, 0 },	/* Will be run at runtime */
+	{ CKA_LABEL, NULL, 0 },		/* Will be run at runtime */
+};
+static CK_ATTRIBUTE cktest_generate_ecc_privkey[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_EC}, sizeof(CK_KEY_TYPE) },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DERIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ID, &(CK_ULONG){1}, sizeof(CK_ULONG) },
+	{ CKA_EC_PARAMS, NULL, 0 },	/* Will be run at runtime */
+	{ CKA_LABEL, NULL, 0 },		/* Will be run at runtime */
 };
 
-static CK_MECHANISM mecha_generate_aes_generic = {
-	CKM_AES_KEY_GEN, NULL, 0
+/* Valid template to generate an RSA key pair */
+static CK_ATTRIBUTE cktest_generate_rsa_pubkey[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ID, &(CK_ULONG){1}, sizeof(CK_ULONG) },
+	{ CKA_MODULUS_BITS, NULL, 0 },	/* Will be run at runtime */
+	{ CKA_LABEL, NULL, 0 },		/* Will be run at runtime */
 };
+static CK_ATTRIBUTE cktest_generate_rsa_privkey[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DERIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ID, &(CK_ULONG){1}, sizeof(CK_ULONG) },
+	{ CKA_LABEL, NULL, 0 },		/* Will be run at runtime */
+};
+
+/*
+ * DER encoding of elliptic curves supported by the
+ * GPD TEE Core Internal API v1.2
+ */
+static uint8_t __unused nist_secp192r1_der[] = {
+	0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x01
+};
+static uint8_t __unused nist_secp224r1_der[] = {
+	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x21
+};
+static uint8_t __unused nist_secp256r1_der[] = {
+	0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
+};
+static uint8_t __unused nist_secp384r1_der[] = {
+	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x22
+};
+static uint8_t __unused nist_secp521r1_der[] = {
+	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x23
+};
+
+struct ecc_params {
+	const char *info;
+	uint8_t *der;
+	size_t der_size;
+	CK_MECHANISM_TYPE test_mecha;
+};
+#define ECC_PARAMS(_str, _der, _mecha) {	\
+		.info = (_str),			\
+		.der = (_der),			\
+		.der_size = sizeof(_der),	\
+		.test_mecha = _mecha,		\
+	}
+
+static struct ecc_params ecc_params_der[] = {
+	ECC_PARAMS("NIST SECP192R1", nist_secp192r1_der, CKM_ECDSA),
+	//ECC_PARAMS("NIST SECP224R1", nist_secp224r1_der, CKM_ECDSA),
+	//ECC_PARAMS("NIST SECP256R1", nist_secp256r1_der, CKM_ECDSA),
+	//ECC_PARAMS("NIST SECP384R1", nist_secp384r1_der, CKM_ECDSA),
+	//ECC_PARAMS("NIST SECP521R1", nist_secp521r1_der, CKM_ECDSA),
+};
+
+static int set_ck_attr(CK_ATTRIBUTE *attrs, size_t count, CK_ULONG id,
+			CK_VOID_PTR *data, CK_ULONG size)
+{
+	size_t idx;
+
+	for (idx = 0; idx < count; idx++) {
+		if (attrs[idx].type != id)
+			continue;
+
+		if (attrs[idx].pValue && attrs[idx].ulValueLen == size) {
+			memcpy(attrs[idx].pValue, data, size);
+		} else {
+			attrs[idx].pValue = data;
+			attrs[idx].ulValueLen = size;
+		}
+		return 0;
+	}
+
+	return 1;
+}
+
+static int clear_ck_attr(CK_ATTRIBUTE *attrs, size_t count, CK_ULONG id)
+{
+	size_t idx;
+
+	for (idx = 0; idx < count; idx++) {
+		if (attrs[idx].type != id)
+			continue;
+
+		attrs[idx].pValue = NULL;
+		attrs[idx].ulValueLen = 0;
+		return 0;
+	}
+
+	return 1;
+}
+
+#define SET_CK_ATTR(attrs, id, data, size) \
+	set_ck_attr((CK_ATTRIBUTE *)attrs, ARRAY_SIZE(attrs), id, \
+			(CK_VOID_PTR)data, (CK_ULONG)size)
+
+#define CLEAR_CK_ATTR(attrs, id) \
+	clear_ck_attr((CK_ATTRIBUTE *)attrs, ARRAY_SIZE(attrs), id)
 
 /* Generate a generic secret */
 static void xtest_tee_test_4105(ADBG_Case_t *c)
@@ -812,23 +930,40 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	CK_SLOT_ID slot;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
 	CK_OBJECT_HANDLE obj_hdl;
+	CK_OBJECT_HANDLE obj_hdl2;
 	CK_FLAGS session_flags = CKF_SERIAL_SESSION | CKF_RW_SESSION;
+	size_t idx;
+	int subcase = 0;
+	CK_MECHANISM test_mecha = { 0 };
+	CK_ULONG ck_ul;
 
 	rv = init_lib_and_find_token_slot(&slot);
 	if (!ADBG_EXPECT_CK_OK(c, rv))
 		return;
 
+	rv = init_user_test_token(slot);
+	if (!ADBG_EXPECT_CK_OK(c, rv)) {
+		close_lib();
+		return;
+	}
+
 	rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		goto bail;
+	if (!ADBG_EXPECT_CK_OK(c, rv)) {
+		close_lib();
+		return;
+	}
 
 	/*
 	 * Generate a Generic Secret object.
 	 * Try to encrpyt with, it should fail...
 	 */
 	Do_ADBG_BeginSubCase(c, "Generate generic secret and do AES with");
+	subcase = 1;
 
-	rv = C_GenerateKey(session, &mecha_generate_gensecret,
+	memset(&test_mecha, 0, sizeof(test_mecha));
+	test_mecha.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
+
+	rv = C_GenerateKey(session, &test_mecha,
 			   cktest_generate_gensecret_object,
 			   ARRAY_SIZE(cktest_generate_gensecret_object),
 			   &obj_hdl);
@@ -844,27 +979,32 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
+	subcase = 0;
 
 	/*
 	 * Generate Generic Secret objects using invalid templates
 	 */
 	Do_ADBG_BeginSubCase(c, "Generate invalid generic secrets");
+	subcase = 1;
 
-	rv = C_GenerateKey(session, &mecha_generate_gensecret,
+	memset(&test_mecha, 0, sizeof(test_mecha));
+	test_mecha.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
+
+	rv = C_GenerateKey(session, &test_mecha,
 			   cktest_generate_gensecret_object_error1,
 			   ARRAY_SIZE(cktest_generate_gensecret_object_error1),
 			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 		goto bail;
 
-	rv = C_GenerateKey(session, &mecha_generate_gensecret,
+	rv = C_GenerateKey(session, &test_mecha,
 			   cktest_generate_gensecret_object_error2,
 			   ARRAY_SIZE(cktest_generate_gensecret_object_error2),
 			   &obj_hdl);
 	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_OK))
 		goto bail;
 
-	rv = C_GenerateKey(session, &mecha_generate_gensecret,
+	rv = C_GenerateKey(session, &test_mecha,
 			   cktest_generate_gensecret_object_error3,
 			   ARRAY_SIZE(cktest_generate_gensecret_object_error3),
 			   &obj_hdl);
@@ -872,14 +1012,19 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
+	subcase = 0;
 
 	/*
 	 * Generate a 128bit AES symmetric key
 	 * Try to encrypt with, it should succeed.
 	 */
 	Do_ADBG_BeginSubCase(c, "Generate AES secret key and encrypt with");
+	subcase = 1;
 
-	rv = C_GenerateKey(session, &mecha_generate_aes_generic,
+	memset(&test_mecha, 0, sizeof(test_mecha));
+	test_mecha.mechanism = CKM_AES_KEY_GEN;
+
+	rv = C_GenerateKey(session, &test_mecha,
 			   cktest_generate_aes_object,
 			   ARRAY_SIZE(cktest_generate_aes_object),
 			   &obj_hdl);
@@ -891,8 +1036,9 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 	if (!ADBG_EXPECT_CK_OK(c, rv))
 		goto bail;
 
+	/* Only check that the operation is no more active */
 	rv = C_EncryptFinal(session, NULL, NULL);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_BUFFER_TOO_SMALL))
 		goto bail;
 
 	rv = C_DestroyObject(session, obj_hdl);
@@ -900,8 +1046,157 @@ static void xtest_tee_test_4105(ADBG_Case_t *c)
 		goto bail;
 
 	Do_ADBG_EndSubCase(c, NULL);
+	subcase = 0;
+
+	/*
+	 * Generate a ECDSA asymmetric key
+	 * Try to sign/verify with, it should succeed.
+	 */
+
+	rv = login_user_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	for (idx = 0; idx < ARRAY_SIZE(ecc_params_der); idx++) {
+		if (subcase)
+			Do_ADBG_EndSubCase(c, NULL);
+
+		Do_ADBG_BeginSubCase(c, "Generate ECC key pair %s",
+					ecc_params_der[idx].info);
+		subcase = 1;
+
+		if (SET_CK_ATTR(cktest_generate_ecc_pubkey, CKA_EC_PARAMS,
+				ecc_params_der[idx].der,
+				ecc_params_der[idx].der_size) ||
+		    SET_CK_ATTR(cktest_generate_ecc_pubkey, CKA_LABEL,
+				ecc_params_der[idx].info,
+				strlen(ecc_params_der[idx].info) - 1) ||
+		    SET_CK_ATTR(cktest_generate_ecc_privkey, CKA_EC_PARAMS,
+				ecc_params_der[idx].der,
+				ecc_params_der[idx].der_size) ||
+		    SET_CK_ATTR(cktest_generate_ecc_privkey, CKA_LABEL,
+				ecc_params_der[idx].info,
+				strlen(ecc_params_der[idx].info) - 1)) {
+			ADBG_EXPECT_TRUE(c, false);
+			continue;
+		}
+
+		memset(&test_mecha, 0, sizeof(test_mecha));
+		test_mecha.mechanism = CKM_EC_KEY_PAIR_GEN;
+
+		rv = C_GenerateKeyPair(session, &test_mecha,
+			   cktest_generate_ecc_pubkey,
+			   ARRAY_SIZE(cktest_generate_ecc_pubkey),
+			   cktest_generate_ecc_privkey,
+			   ARRAY_SIZE(cktest_generate_ecc_privkey),
+			   &obj_hdl, &obj_hdl2);
+
+		/* Clear temporary references for next test to find its way */
+		if (CLEAR_CK_ATTR(cktest_generate_ecc_pubkey, CKA_EC_PARAMS) ||
+		    CLEAR_CK_ATTR(cktest_generate_ecc_pubkey, CKA_LABEL) ||
+		    CLEAR_CK_ATTR(cktest_generate_ecc_privkey, CKA_EC_PARAMS) ||
+		    CLEAR_CK_ATTR(cktest_generate_ecc_privkey, CKA_LABEL)) {
+			ADBG_EXPECT_TRUE(c, false);
+			continue;
+		}
+
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			continue;
+
+		test_mecha.mechanism = ecc_params_der[idx].test_mecha;
+
+		rv = C_SignInit(session, &test_mecha, obj_hdl2);
+		if (ADBG_EXPECT_CK_OK(c, rv)) {
+			/* Only check that the operation is no more active */
+			rv = C_SignFinal(session, NULL, NULL);
+			ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=,
+							CKR_BUFFER_TOO_SMALL);
+		}
+
+		rv = C_VerifyInit(session, &test_mecha, obj_hdl);
+		if (ADBG_EXPECT_CK_OK(c, rv)) {
+			/* Only check that the operation is no more active */
+			rv = C_VerifyFinal(session, NULL, 0);
+			ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=,
+							CKR_BUFFER_TOO_SMALL);
+		}
+
+		rv = C_DestroyObject(session, obj_hdl);
+		ADBG_EXPECT_CK_OK(c, rv);
+
+		rv = C_DestroyObject(session, obj_hdl2);
+		ADBG_EXPECT_CK_OK(c, rv);
+	}
+
+	rv = logout_test_token(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	if (subcase)
+		Do_ADBG_EndSubCase(c, NULL);
+
+
+	/*
+	 * Generate a RSA asymmetric key
+	 * Try to sign/verify with, it should succeed.
+	 */
+	ck_ul = 512;
+
+	rv = login_user_test_token(session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	Do_ADBG_BeginSubCase(c, "Generate %lu bit RSA key pair", ck_ul);
+	subcase = 1;
+
+	if (SET_CK_ATTR(cktest_generate_rsa_pubkey, CKA_MODULUS_BITS,
+			&ck_ul, sizeof(CK_ULONG))) {
+			ADBG_EXPECT_TRUE(c, false);
+			goto bail;
+	}
+
+	memset(&test_mecha, 0, sizeof(test_mecha));
+	test_mecha.mechanism = CKM_RSA_PKCS_KEY_PAIR_GEN;
+
+	rv = C_GenerateKeyPair(session, &test_mecha,
+		   cktest_generate_rsa_pubkey,
+		   ARRAY_SIZE(cktest_generate_rsa_pubkey),
+		   cktest_generate_rsa_privkey,
+		   ARRAY_SIZE(cktest_generate_rsa_privkey),
+		   &obj_hdl, &obj_hdl2);
+
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	memset(&test_mecha, 0, sizeof(test_mecha));
+	test_mecha.mechanism = CKM_SHA1_RSA_PKCS;
+
+	rv = C_SignInit(session, &test_mecha, obj_hdl2);
+	if (ADBG_EXPECT_CK_OK(c, rv)) {
+		/* Only check that the operation is no more active */
+		rv = C_SignFinal(session, NULL, NULL);
+		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_BUFFER_TOO_SMALL);
+	}
+
+	rv = C_VerifyInit(session, &test_mecha, obj_hdl);
+	if (ADBG_EXPECT_CK_OK(c, rv)) {
+		/* Only check that the operation is no more active */
+		rv = C_VerifyFinal(session, NULL, 0);
+		ADBG_EXPECT_COMPARE_UNSIGNED(c, rv, !=, CKR_BUFFER_TOO_SMALL);
+	}
+
+	rv = C_DestroyObject(session, obj_hdl);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	rv = C_DestroyObject(session, obj_hdl2);
+	ADBG_EXPECT_CK_OK(c, rv);
+
+	rv = logout_test_token(session);
+	ADBG_EXPECT_CK_OK(c, rv);
 
 bail:
+	if (subcase)
+		Do_ADBG_EndSubCase(c, NULL);
+
 	rv = C_CloseSession(session);
 	ADBG_EXPECT_CK_OK(c, rv);
 
