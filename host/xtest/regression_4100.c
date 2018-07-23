@@ -2150,6 +2150,10 @@ bail0:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
+static void xtest_tee_test_4117(ADBG_Case_t *c)
+{
+	cktest_in_regression_40xx(c, 4117);
+}
 
 ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
 		"PKCS11: Initialize and close Cryptoki library");
@@ -2181,3 +2185,5 @@ ADBG_CASE_DEFINE(regression, 4114, xtest_tee_test_4114,
 		"PKCS11: Object lookup");
 ADBG_CASE_DEFINE(regression, 4115, xtest_tee_test_4115,
 		"PKCS11: Private object accesses");
+ADBG_CASE_DEFINE(regression, 4117, xtest_tee_test_4117,
+		"PKCS11: Compliance of asymmetric ciphering processings");

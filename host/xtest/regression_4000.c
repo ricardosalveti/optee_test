@@ -77,6 +77,32 @@ ADBG_CASE_DEFINE(regression, 4012, xtest_tee_test_4012,
 		"Test seeding RNG entropy");
 #endif
 
+#ifdef CFG_SECURE_KEY_SERVICES
+/*
+ * Load an attribute value (value data and value size) in a PKCS#11 object
+ */
+static int set_ck_attr(CK_ATTRIBUTE *attrs, size_t count, CK_ULONG id,
+			CK_VOID_PTR data, CK_ULONG size)
+{
+	size_t idx;
+
+	for (idx = 0; idx < count; idx++) {
+		if (attrs[idx].type == id) {
+			attrs[idx].pValue = data;
+			attrs[idx].ulValueLen = size;
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+#define SET_CK_ATTR(attrs, id, data, size) \
+	set_ck_attr((CK_ATTRIBUTE *)attrs, ARRAY_SIZE(attrs), id, \
+			(CK_VOID_PTR)data, (CK_ULONG)size)
+
+#endif /*CFG_SECURE_KEY_SERVICES*/
+
 static TEEC_Result ta_crypt_cmd_random_number_generate(ADBG_Case_t *c,
 						       TEEC_Session *s,
 						       void *buf, size_t blen);
@@ -5099,6 +5125,520 @@ static void xtest_tee_test_4006(ADBG_Case_t *c)
 out:
 	TEEC_CloseSession(&session);
 }
+
+#ifdef CFG_SECURE_KEY_SERVICES
+/*
+ * The test below belongs to the regression 41xx test. As it relies on test
+ * vectors defined for the 40xx test, this test sequence is implemented here.
+ * The test below checks compliance of crypto algorithms called through the
+ * PKCS#11 interface.
+ */
+void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot);
+
+static CK_UTF8CHAR label_rsa_pub[] = "Generic RSA public key for testing";
+static CK_ATTRIBUTE rsa_key_pub_attr[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_LABEL, label_rsa_pub, sizeof(label_rsa_pub) - 1 },
+	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODULUS, (void *)NULL, 0 },
+	{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },
+};
+
+static CK_UTF8CHAR label_rsa_priv[] = "Generic RSA private key for testing";
+static CK_ATTRIBUTE rsa_key_priv_attr[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_LABEL, label_rsa_priv, sizeof(label_rsa_priv) - 1 },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODULUS, (void *)NULL, 0 },
+	{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },
+	{ CKA_PRIVATE_EXPONENT, (void *)NULL, 0 },
+	{ CKA_PRIME_1, (void *)NULL, 0 },
+	{ CKA_PRIME_2, (void *)NULL, 0 },
+	{ CKA_EXPONENT_1, (void *)NULL, 0 },
+	{ CKA_EXPONENT_2, (void *)NULL, 0 },
+	{ CKA_COEFFICIENT, (void *)NULL, 0 },
+};
+
+static CK_ATTRIBUTE rsa_key_priv_attr2[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_LABEL, label_rsa_priv, sizeof(label_rsa_priv) - 1 },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODULUS, (void *)NULL, 0 },
+	{ CKA_PUBLIC_EXPONENT, (void *)NULL, 0 },
+	{ CKA_PRIVATE_EXPONENT, (void *)NULL, 0 },
+};
+
+struct mechanism_converter {
+	CK_MECHANISM_TYPE ckMechanismType;
+	CK_VOID_PTR ckParameter;
+	CK_ULONG ckParameterLen;	/* in bytes */
+	uint32_t tee_algo;
+};
+
+#define CKTEST_RSA_PSS_PARAMS(_label, _algo, _mgf)	\
+		CK_RSA_PKCS_PSS_PARAMS _label = {	\
+			.hashAlg = _algo,		\
+			.mgf = _mgf,			\
+		}
+
+#define CKTEST_RSA_OAEP_PARAMS(_label, _algo, _mgf)	\
+		CK_RSA_PKCS_OAEP_PARAMS _label = {	\
+			.hashAlg = _algo,		\
+			.mgf = _mgf,			\
+			.source = CKZ_DATA_SPECIFIED,	\
+		};
+
+/*
+ * This test assumes the regression 4006 uses the same hash algorithm for
+ * the mask generation function and the lessage. CK parameters not set below
+ * at set at runtime from regression 4006 test materials.
+ */
+static CKTEST_RSA_PSS_PARAMS(pss_sha1_params, CKM_SHA_1, CKG_MGF1_SHA1);
+static CKTEST_RSA_PSS_PARAMS(pss_sha224_params, CKM_SHA224, CKG_MGF1_SHA224);
+static CKTEST_RSA_PSS_PARAMS(pss_sha256_params, CKM_SHA256, CKG_MGF1_SHA256);
+static CKTEST_RSA_PSS_PARAMS(pss_sha384_params, CKM_SHA384, CKG_MGF1_SHA384);
+static CKTEST_RSA_PSS_PARAMS(pss_sha512_params, CKM_SHA512, CKG_MGF1_SHA512);
+
+static CKTEST_RSA_OAEP_PARAMS(oaep_sha1_params, CKM_SHA_1, CKG_MGF1_SHA1);
+static CKTEST_RSA_OAEP_PARAMS(oaep_sha224_params, CKM_SHA224, CKG_MGF1_SHA224);
+static CKTEST_RSA_OAEP_PARAMS(oaep_sha256_params, CKM_SHA256, CKG_MGF1_SHA256);
+static CKTEST_RSA_OAEP_PARAMS(oaep_sha384_params, CKM_SHA384, CKG_MGF1_SHA384);
+static CKTEST_RSA_OAEP_PARAMS(oaep_sha512_params, CKM_SHA512, CKG_MGF1_SHA512);
+
+#define MECHA_CONV_ITEM(_mecha, _params, _tee_algo) \
+	{ \
+		.ckMechanismType = (CK_MECHANISM_TYPE)(_mecha),	\
+		.ckParameter = &_params, \
+		.ckParameterLen = sizeof(_params), \
+		.tee_algo = (uint32_t)(_tee_algo), \
+	}
+
+#define MECHA_CONV_NOPARAM(_mecha, _tee_algo)	\
+	{							\
+		.ckMechanismType = (CK_MECHANISM_TYPE)(_mecha),	\
+		.ckParameter = NULL,				\
+		.ckParameterLen = 0,				\
+		.tee_algo = (uint32_t)(_tee_algo),		\
+	}
+
+
+static struct mechanism_converter mechanism_converter[] = {
+	MECHA_CONV_NOPARAM(CKM_RSA_X_509,
+			TEE_ALG_RSA_NOPAD),
+	MECHA_CONV_NOPARAM(CKM_SHA1_RSA_PKCS,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA1),
+	MECHA_CONV_NOPARAM(CKM_SHA224_RSA_PKCS,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA224),
+	MECHA_CONV_NOPARAM(CKM_SHA256_RSA_PKCS,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA256),
+	MECHA_CONV_NOPARAM(CKM_SHA384_RSA_PKCS,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA384),
+	MECHA_CONV_NOPARAM(CKM_SHA512_RSA_PKCS,
+			TEE_ALG_RSASSA_PKCS1_V1_5_SHA512),
+
+	MECHA_CONV_ITEM(CKM_SHA1_RSA_PKCS_PSS, pss_sha1_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA1),
+	MECHA_CONV_ITEM(CKM_SHA224_RSA_PKCS_PSS, pss_sha224_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA224),
+	MECHA_CONV_ITEM(CKM_SHA256_RSA_PKCS_PSS, pss_sha256_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA256),
+	MECHA_CONV_ITEM(CKM_SHA384_RSA_PKCS_PSS, pss_sha384_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA384),
+	MECHA_CONV_ITEM(CKM_SHA512_RSA_PKCS_PSS, pss_sha512_params,
+			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA512),
+
+	MECHA_CONV_NOPARAM(CKM_RSA_PKCS, TEE_ALG_RSAES_PKCS1_V1_5),
+
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha1_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA1),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha224_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA224),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha256_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA256),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha384_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA384),
+	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha512_params,
+			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA512),
+};
+
+static int tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha)
+{
+	struct mechanism_converter *conv = mechanism_converter;
+	size_t n;
+
+	for (n = 0; n < ARRAY_SIZE(mechanism_converter); n++, conv++) {
+		if (conv->tee_algo != tee_alg)
+			continue;
+
+		mecha->mechanism = conv->ckMechanismType;
+		mecha->pParameter = conv->ckParameter;
+		if (mecha->pParameter)
+			mecha->ulParameterLen = conv->ckParameterLen;
+		else
+			mecha->ulParameterLen = 0;
+
+		return 0;
+	}
+
+	return 1;
+}
+
+void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot)
+{
+	CK_RV rv;
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_OBJECT_HANDLE priv_key_handle = CK_INVALID_HANDLE;
+	CK_OBJECT_HANDLE pub_key_handle = CK_INVALID_HANDLE;
+	uint8_t out[512];
+	size_t out_size;
+	uint8_t out_enc[512];
+	size_t out_enc_size;
+	size_t n;
+	int subcase = 0;
+	/* Compute hash through cryp test TA (until SKS supports hashes */
+	uint8_t ptx_hash[TEE_MAX_HASH_SIZE];
+	size_t ptx_hash_size;
+	TEEC_Session crypta_session = { 0 };
+	uint32_t ret_orig;
+
+	if (!ADBG_EXPECT_TEEC_SUCCESS(c,
+				xtest_teec_open_session(&crypta_session,
+							&crypt_user_ta_uuid,
+							NULL, &ret_orig)))
+		return;
+
+	rv = C_OpenSession(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+			   NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto out;
+
+	for (n = 0; n < ARRAY_SIZE(xtest_ac_cases); n++) {
+		CK_MECHANISM mechanism = { 0 };
+		const struct xtest_ac_case *tv = xtest_ac_cases + n;
+		CK_ATTRIBUTE *rsa_priv_attr;
+		size_t rsa_priv_count;
+
+		if (tv->level > level)
+			continue;
+
+		/* Fill Cryptoki mechanism structure from OP-TEE native vectors */
+	        if (tee_alg2ckmt(tv->algo, &mechanism)) {
+			unsigned int algo = TEE_ALG_GET_MAIN_ALG(tv->algo);
+
+			Do_ADBG_Log("Skip test case %d algo 0x%x line %d (%s)",
+				     (int)n, (unsigned int)tv->algo,
+				     (int)tv->line,
+				     algo == TEE_MAIN_ALGO_RSA ? "RSA" :
+				     algo == TEE_MAIN_ALGO_DSA ? "DSA" :
+				     algo == TEE_MAIN_ALGO_DH ? "DH" :
+				     algo == TEE_MAIN_ALGO_ECDSA ? "ECDSA" :
+				     algo == TEE_MAIN_ALGO_ECDH ? "ECDH" :
+				     "???");
+			continue;
+		}
+
+		if (TEE_ALG_GET_MAIN_ALG(tv->algo) == TEE_MAIN_ALGO_RSA &&
+		    tv->params.rsa.salt_len > 0) {
+			CK_VOID_PTR ptr = mechanism.pParameter;
+
+			((CK_RSA_PKCS_PSS_PARAMS_PTR)ptr)->sLen =
+				tv->params.rsa.salt_len;
+		}
+
+
+		Do_ADBG_BeginSubCase(c, "Asym Crypto case %d algo 0x%x line %d (%s)",
+				     (int)n, (unsigned int)tv->algo,
+				     (int)tv->line, ckm2str(mechanism.mechanism));
+		subcase = 1;
+
+
+		/*
+		 * When signing or verifying we're working with the hash of
+		 * the payload.
+		 */
+		if (tv->mode == TEE_MODE_VERIFY || tv->mode == TEE_MODE_SIGN) {
+			uint32_t hash_algo;
+			TEE_OperationHandle op = TEE_HANDLE_NULL;
+
+			if (TEE_ALG_GET_MAIN_ALG(tv->algo) ==
+							TEE_MAIN_ALGO_ECDSA)
+				hash_algo = TEE_ALG_SHA1;
+			else
+				hash_algo = TEE_ALG_HASH_ALGO(
+					TEE_ALG_GET_DIGEST_HASH(tv->algo));
+
+			if (!ADBG_EXPECT_TEEC_SUCCESS(c,
+				ta_crypt_cmd_allocate_operation(c,
+							&crypta_session, &op,
+							hash_algo,
+							TEE_MODE_DIGEST, 0)))
+				goto out;
+
+			ptx_hash_size = sizeof(ptx_hash);
+			if (!ADBG_EXPECT_TEEC_SUCCESS(c,
+				ta_crypt_cmd_digest_do_final(c, &crypta_session,
+							op, tv->ptx,
+							tv->ptx_len, ptx_hash,
+							&ptx_hash_size)))
+				goto out;
+
+			/*
+			 * When we use DSA algorithms, the size of the hash we
+			 * consider equals the min between the size of the
+			 * "subprime" in the key and the size of the hash
+			 */
+			if (TEE_ALG_GET_MAIN_ALG(tv->algo) ==
+			    TEE_MAIN_ALGO_DSA) {
+				if (tv->params.dsa.sub_prime_len <=
+				    ptx_hash_size)
+					ptx_hash_size =
+						tv->params.dsa.sub_prime_len;
+			}
+
+			if (!ADBG_EXPECT_TEEC_SUCCESS(c,
+				ta_crypt_cmd_free_operation(c, &crypta_session,
+							    op)))
+				goto out;
+		}
+
+
+		/* Collect key attributes and create key */
+		switch (TEE_ALG_GET_MAIN_ALG(tv->algo)) {
+		case TEE_MAIN_ALGO_RSA:
+
+			if (tv->params.rsa.prime1_len) {
+				rsa_priv_attr = &rsa_key_priv_attr[0];
+				rsa_priv_count = ARRAY_SIZE(rsa_key_priv_attr);
+			} else {
+				rsa_priv_attr = &rsa_key_priv_attr2[0];
+				rsa_priv_count = ARRAY_SIZE(rsa_key_priv_attr2);
+			}
+
+			if (SET_CK_ATTR(rsa_key_pub_attr, CKA_MODULUS,
+					tv->params.rsa.modulus,
+					tv->params.rsa.modulus_len) ||
+			    SET_CK_ATTR(rsa_key_pub_attr, CKA_PUBLIC_EXPONENT,
+					tv->params.rsa.pub_exp,
+					tv->params.rsa.pub_exp_len)) {
+				Do_ADBG_Log("Invalid test setup");
+				ADBG_EXPECT_TRUE(c, false);
+				goto out;
+			}
+
+			rv = C_CreateObject(session, rsa_key_pub_attr,
+					    ARRAY_SIZE(rsa_key_pub_attr),
+					    &pub_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			if (set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					CKA_MODULUS,
+					(void *)tv->params.rsa.modulus,
+					tv->params.rsa.modulus_len) ||
+			    set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					CKA_PUBLIC_EXPONENT,
+					(void *)tv->params.rsa.pub_exp,
+					tv->params.rsa.pub_exp_len) ||
+			    set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					CKA_PRIVATE_EXPONENT,
+					(void *)tv->params.rsa.priv_exp,
+					tv->params.rsa.priv_exp_len)) {
+				Do_ADBG_Log("Invalid test setup");
+				ADBG_EXPECT_TRUE(c, false);
+				goto out;
+			}
+
+			if (tv->params.rsa.prime1_len != 0 &&
+			    (set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					 CKA_PRIME_1,
+					 (void *)tv->params.rsa.prime1,
+					 tv->params.rsa.prime1_len) ||
+			     set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					 CKA_PRIME_2,
+					 (void *)tv->params.rsa.prime2,
+					 tv->params.rsa.prime2_len) ||
+			     set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					 CKA_EXPONENT_1,
+					 (void *)tv->params.rsa.exp1,
+					 tv->params.rsa.exp1_len) ||
+			     set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					 CKA_EXPONENT_2,
+					 (void *)tv->params.rsa.exp2,
+					 tv->params.rsa.exp2_len) ||
+			     set_ck_attr(rsa_priv_attr, rsa_priv_count,
+					 CKA_COEFFICIENT,
+					 (void *)tv->params.rsa.coeff,
+					 tv->params.rsa.coeff_len))) {
+				Do_ADBG_Log("Invalid test setup");
+				ADBG_EXPECT_TRUE(c, false);
+				goto out;
+			}
+
+			rv = C_CreateObject(session, rsa_priv_attr,
+					    rsa_priv_count, &priv_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			break;
+
+		default:
+
+			break;
+		}
+
+		memset(out, 0, sizeof(out));
+		memset(out_enc, 0, sizeof(out_enc));
+
+		switch (tv->mode) {
+		case TEE_MODE_ENCRYPT:
+			rv = C_EncryptInit(session, &mechanism, pub_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			out_enc_size = sizeof(out_enc);
+			rv = C_Encrypt(session,
+					(CK_VOID_PTR)tv->ptx, tv->ptx_len,
+					(CK_VOID_PTR)out_enc,
+					(CK_ULONG_PTR)&out_enc_size);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			/*
+			 * A PS which is random is added when formatting the
+			 * message internally of the algorithm so we can't
+			 * verify against precomputed values, instead we use the
+			 * decrypt operation to see that output is correct.
+			 */
+			rv = C_DecryptInit(session, &mechanism, priv_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			out_size = sizeof(out);
+			rv = C_Decrypt(session,
+					(CK_VOID_PTR)out_enc, out_enc_size,
+					out, (CK_ULONG_PTR)&out_size);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+		                goto out;
+
+			ADBG_EXPECT_BUFFER(c, tv->ptx, tv->ptx_len,
+					   out, out_size);
+			break;
+
+		case TEE_MODE_DECRYPT:
+			rv = C_DecryptInit(session, &mechanism, priv_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+		                goto out;
+
+			out_size = sizeof(out);
+			rv = C_Decrypt(session,
+					(CK_VOID_PTR)tv->ctx, tv->ctx_len,
+					out, (CK_ULONG_PTR) &out_size);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			ADBG_EXPECT_BUFFER(c, tv->ptx, tv->ptx_len,
+					   out, out_size);
+			break;
+
+		case TEE_MODE_SIGN:
+			rv = C_SignInit(session, &mechanism, priv_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			out_size = sizeof(out);
+			rv = C_Sign(session,
+				    (CK_VOID_PTR)ptx_hash,
+				    (CK_ULONG)ptx_hash_size,
+				    (CK_VOID_PTR)out,
+				    (CK_ULONG_PTR)&out_size);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+		                goto out;
+
+			/*
+			 * The salt or K is random so we can't verify
+			 * signing against precomputed values, instead
+			 * we use the verify operation to see that
+			 * output is correct.
+			 */
+			if (TEE_ALG_GET_CHAIN_MODE(tv->algo) ==
+						TEE_CHAIN_MODE_PKCS1_PSS_MGF1 ||
+			    tv->algo == TEE_ALG_DSA_SHA1 ||
+			    tv->algo == TEE_ALG_DSA_SHA224 ||
+			    tv->algo == TEE_ALG_DSA_SHA256 ||
+			    TEE_ALG_GET_MAIN_ALG(tv->algo) ==
+						TEE_MAIN_ALGO_ECDSA) {
+
+				rv = C_VerifyInit(session, &mechanism,
+						  pub_key_handle);
+				if (!ADBG_EXPECT_CK_OK(c, rv))
+					goto out;
+
+				rv = C_Verify(session,
+						(CK_BYTE_PTR)ptx_hash,
+						(CK_ULONG)ptx_hash_size,
+						(CK_BYTE_PTR)out,
+						(CK_ULONG)out_size);
+				if (!ADBG_EXPECT_CK_OK(c, rv))
+					goto out;
+			} else {
+				ADBG_EXPECT_BUFFER(c, tv->ctx, tv->ctx_len,
+						   out, out_size);
+			}
+			break;
+
+	        case TEE_MODE_VERIFY:
+			rv = C_VerifyInit(session, &mechanism, pub_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			rv = C_Verify(session, (CK_BYTE_PTR)&ptx_hash[0],
+						(CK_ULONG)ptx_hash_size,
+						(CK_BYTE_PTR)tv->ctx,
+						(CK_ULONG)tv->ctx_len);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			break;
+
+		default:
+			break;
+		}
+
+		rv = C_DestroyObject(session, priv_key_handle);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto out;
+
+		priv_key_handle = CK_INVALID_HANDLE;
+
+		rv = C_DestroyObject(session, pub_key_handle);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto out;
+
+		pub_key_handle = CK_INVALID_HANDLE;
+
+		Do_ADBG_EndSubCase(c, NULL);
+		subcase = 0;
+	}
+out:
+	if (subcase)
+		Do_ADBG_EndSubCase(c, NULL);
+
+	TEEC_CloseSession(&crypta_session);
+
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+}
+#endif
+
 
 #define KEY_ATTR(x, y) { #x, (x), y }
 
