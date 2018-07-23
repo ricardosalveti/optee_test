@@ -2150,6 +2150,11 @@ bail0:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
+static void xtest_tee_test_4116(ADBG_Case_t *c)
+{
+	cktest_in_regression_40xx(c, 4116);
+}
+
 static void xtest_tee_test_4117(ADBG_Case_t *c)
 {
 	cktest_in_regression_40xx(c, 4117);
@@ -2185,5 +2190,7 @@ ADBG_CASE_DEFINE(regression, 4114, xtest_tee_test_4114,
 		"PKCS11: Object lookup");
 ADBG_CASE_DEFINE(regression, 4115, xtest_tee_test_4115,
 		"PKCS11: Private object accesses");
+ADBG_CASE_DEFINE(regression, 4116, xtest_tee_test_4116,
+		"PKCS11: Test key generation");
 ADBG_CASE_DEFINE(regression, 4117, xtest_tee_test_4117,
 		"PKCS11: Compliance of asymmetric ciphering processings");

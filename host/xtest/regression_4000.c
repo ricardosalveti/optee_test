@@ -78,6 +78,7 @@ ADBG_CASE_DEFINE(regression, 4012, xtest_tee_test_4012,
 #endif
 
 #ifdef CFG_SECURE_KEY_SERVICES
+
 /*
  * Load an attribute value (value data and value size) in a PKCS#11 object
  */
@@ -5177,11 +5178,31 @@ static CK_ATTRIBUTE rsa_key_priv_attr2[] = {
 	{ CKA_PRIVATE_EXPONENT, (void *)NULL, 0 },
 };
 
-struct mechanism_converter {
-	CK_MECHANISM_TYPE ckMechanismType;
-	CK_VOID_PTR ckParameter;
-	CK_ULONG ckParameterLen;	/* in bytes */
-	uint32_t tee_algo;
+static CK_UTF8CHAR label_ec_pub[] = "Generic EC public key for testing";
+static CK_ATTRIBUTE __unused ec_key_pub_attr[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_EC}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_LABEL, label_ec_pub, sizeof(label_ec_pub) - 1 },
+	//{ CKA_ID, (void *)NULL, 0 }, ???
+	{ CKA_EC_PARAMS, (void *)NULL, 0 },                            // to fill at runtime
+	{ CKA_EC_POINT, (void *)NULL, 0 },                             // to fill at runtime
+};
+
+CK_UTF8CHAR label_ec_priv[] = "Generic RSA private key for testing";
+CK_ATTRIBUTE ec_key_priv_attr[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+		sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_SENSITIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DERIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_LABEL, label_ec_priv, sizeof(label_ec_priv) - 1 },
+	{ CKA_SUBJECT, (void *)NULL, 0 },
+	{ CKA_ID, (void *)NULL, 0 },
+	{ CKA_EC_PARAMS, (void *)NULL, 0 },
+	{ CKA_VALUE, (void *)NULL, 0 },
 };
 
 #define CKTEST_RSA_PSS_PARAMS(_label, _algo, _mgf)	\
@@ -5214,12 +5235,20 @@ static CKTEST_RSA_OAEP_PARAMS(oaep_sha256_params, CKM_SHA256, CKG_MGF1_SHA256);
 static CKTEST_RSA_OAEP_PARAMS(oaep_sha384_params, CKM_SHA384, CKG_MGF1_SHA384);
 static CKTEST_RSA_OAEP_PARAMS(oaep_sha512_params, CKM_SHA512, CKG_MGF1_SHA512);
 
-#define MECHA_CONV_ITEM(_mecha, _params, _tee_algo) \
-	{ \
+/* Convert a TEE algorithm into a PKCS#11 CK mechanism identifier */
+struct mechanism_converter {
+	CK_MECHANISM_TYPE ckMechanismType;
+	CK_VOID_PTR ckParameter;
+	CK_ULONG ckParameterLen;	/* in bytes */
+	uint32_t tee_algo;
+};
+
+#define MECHA_CONV_ITEM(_mecha, _params, _tee_algo)	\
+	{							\
 		.ckMechanismType = (CK_MECHANISM_TYPE)(_mecha),	\
-		.ckParameter = &_params, \
-		.ckParameterLen = sizeof(_params), \
-		.tee_algo = (uint32_t)(_tee_algo), \
+		.ckParameter = &_params,			\
+		.ckParameterLen = sizeof(_params),		\
+		.tee_algo = (uint32_t)(_tee_algo),		\
 	}
 
 #define MECHA_CONV_NOPARAM(_mecha, _tee_algo)	\
@@ -5232,8 +5261,6 @@ static CKTEST_RSA_OAEP_PARAMS(oaep_sha512_params, CKM_SHA512, CKG_MGF1_SHA512);
 
 
 static struct mechanism_converter mechanism_converter[] = {
-	MECHA_CONV_NOPARAM(CKM_RSA_X_509,
-			TEE_ALG_RSA_NOPAD),
 	MECHA_CONV_NOPARAM(CKM_SHA1_RSA_PKCS,
 			TEE_ALG_RSASSA_PKCS1_V1_5_SHA1),
 	MECHA_CONV_NOPARAM(CKM_SHA224_RSA_PKCS,
@@ -5268,6 +5295,14 @@ static struct mechanism_converter mechanism_converter[] = {
 			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA384),
 	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha512_params,
 			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA512),
+#if 0
+	// TODO
+	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P192),
+	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P224),
+	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P256),
+	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P384),
+	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P521),
+#endif
 };
 
 static int tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha)
@@ -5846,6 +5881,93 @@ static bool generate_and_test_key(ADBG_Case_t *c, TEEC_Session *s,
 	return ret_val;
 }
 
+#ifdef CFG_SECURE_KEY_SERVICES
+static bool cktest_generate_and_test_key(ADBG_Case_t *c,
+					 CK_SESSION_HANDLE session,
+					 CK_MECHANISM *ck_mechanism,
+					 CK_ATTRIBUTE *ck_attrs, CK_ULONG ck_count,
+					 CK_ATTRIBUTE *ck_attrs2, CK_ULONG ck_count2,
+					 uint32_t __unused check_keysize,
+					 uint32_t __unused key_size,
+					 void __unused *rsv,
+					 size_t __unused rsv_sz)
+{
+	CK_ATTRIBUTE cktest_findobj_local[] = {
+		{ CKA_LOCAL, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	};
+	CK_RV rv;
+	CK_OBJECT_HANDLE obj_hdl;
+	CK_OBJECT_HANDLE obj_hdl2;
+	CK_OBJECT_HANDLE obj_hdl3;
+	CK_ULONG count = 1;
+
+	if (ck_count2) {
+		rv = C_GenerateKeyPair(session, ck_mechanism,
+					ck_attrs, ck_count,
+					ck_attrs2, ck_count2,
+					&obj_hdl, &obj_hdl2);
+	} else {
+		rv = C_GenerateKey(session, ck_mechanism,
+				   ck_attrs, ck_count, &obj_hdl);
+	}
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	/*
+	 * Weak test: check a local object is created and matches our handle.
+	 * TODO: get key attribute data and check the size.
+	 */
+	rv = C_FindObjectsInit(session, cktest_findobj_local,
+				ARRAY_SIZE(cktest_findobj_local));
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto bail;
+
+	obj_hdl3 = CK_INVALID_HANDLE;
+	while (1) {
+		rv = C_FindObjects(session, &obj_hdl3, 1, &count);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto bail;
+
+
+		if (!count || obj_hdl3 == obj_hdl)
+			break;
+	}
+
+	if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, obj_hdl3, ==, obj_hdl))
+		rv = CKR_GENERAL_ERROR;
+
+	ADBG_EXPECT_CK_OK(c, C_FindObjectsFinal(session));
+	ADBG_EXPECT_CK_OK(c, C_DestroyObject(session, obj_hdl));
+
+	if (ck_count2) {
+		obj_hdl3 = CK_INVALID_HANDLE;
+
+		rv = C_FindObjectsInit(session, cktest_findobj_local,
+					ARRAY_SIZE(cktest_findobj_local));
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto bail;
+
+		while (1) {
+			rv = C_FindObjects(session, &obj_hdl3, 1, &count);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto bail;
+
+			if (!count || obj_hdl3 == obj_hdl2)
+				break;
+		}
+
+		if (!ADBG_EXPECT_COMPARE_UNSIGNED(c, obj_hdl3, ==, obj_hdl2))
+			rv = CKR_GENERAL_ERROR;
+
+		ADBG_EXPECT_CK_OK(c, C_FindObjectsFinal(session));
+		ADBG_EXPECT_CK_OK(c, C_DestroyObject(session, obj_hdl2));
+	}
+
+bail:
+	return rv == CKR_OK;
+}
+#endif
+
 static const struct {
 	unsigned level;
 	const char *name;
@@ -5907,6 +6029,177 @@ static void xtest_test_keygen_noparams(ADBG_Case_t *c, TEEC_Session *session)
 					keygen_noparams_key_types[n].name);
 	}
 }
+
+#ifdef CFG_SECURE_KEY_SERVICES
+
+/* Valid template to generate a generic secret */
+static CK_ATTRIBUTE cktest_keygen_noparams_symkey[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){0}, sizeof(CK_KEY_TYPE) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_VALUE_LEN, &(CK_ULONG){16}, sizeof(CK_ULONG) },
+};
+static CK_ATTRIBUTE cktest_keygen_noparams_rsa_pub[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE, &(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_ENCRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_MODULUS_BITS, &(CK_ULONG){0}, sizeof(CK_ULONG) },
+};
+static CK_ATTRIBUTE cktest_keygen_noparams_rsa_priv[] = {
+	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
+			sizeof(CK_OBJECT_CLASS) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
+};
+
+static void cktest_keygen_noparams(ADBG_Case_t *c, CK_SLOT_ID slot)
+{
+	size_t n;
+	uint32_t key_size;
+	CK_RV rv;
+	CK_SESSION_HANDLE session;
+
+	for (n = 0; n < ARRAY_SIZE(keygen_noparams_key_types); n++) {
+		uint32_t min_size = keygen_noparams_key_types[n].min_size;
+		uint32_t max_size = keygen_noparams_key_types[n].max_size;
+		uint32_t quanta = keygen_noparams_key_types[n].quanta;
+		CK_MECHANISM ck_mecha = { 0 };
+		CK_ATTRIBUTE *ck_attrs;
+		CK_ULONG ck_count;
+		CK_ATTRIBUTE *ck_attrs2;
+		CK_ULONG ck_count2;
+		CK_ULONG ck_key_size;
+		CK_ULONG ck_key_type;
+		CK_FLAGS session_flags = CKF_SERIAL_SESSION;
+
+		if (keygen_noparams_key_types[n].level > level)
+			continue;
+
+		switch (keygen_noparams_key_types[n].key_type) {
+		case TEE_TYPE_AES:
+			ck_key_type = CKK_AES;
+			ck_mecha.mechanism = CKM_AES_KEY_GEN;
+			ck_attrs = cktest_keygen_noparams_symkey;
+			ck_count = ARRAY_SIZE(cktest_keygen_noparams_symkey);
+			ck_attrs2 = NULL;
+			ck_count2 = 0;
+			break;
+
+		case TEE_TYPE_DES:
+		case TEE_TYPE_DES3:
+			continue;
+
+		case TEE_TYPE_HMAC_MD5:
+		case TEE_TYPE_HMAC_SHA1:
+		case TEE_TYPE_HMAC_SHA224:
+		case TEE_TYPE_HMAC_SHA256:
+		case TEE_TYPE_HMAC_SHA384:
+		case TEE_TYPE_HMAC_SHA512:
+		case TEE_TYPE_GENERIC_SECRET:
+			ck_key_type = CKK_GENERIC_SECRET;
+			ck_mecha.mechanism = CKM_GENERIC_SECRET_KEY_GEN;
+			ck_attrs = cktest_keygen_noparams_symkey;
+			ck_count = ARRAY_SIZE(cktest_keygen_noparams_symkey);
+			ck_attrs2 = NULL;
+			ck_count2 = 0;
+			break;
+
+		case TEE_TYPE_RSA_KEYPAIR:
+			ck_key_type = CKK_RSA;
+			ck_mecha.mechanism = CKM_RSA_PKCS_KEY_PAIR_GEN;
+			ck_attrs = cktest_keygen_noparams_rsa_pub;
+			ck_count = ARRAY_SIZE(cktest_keygen_noparams_rsa_pub);
+			ck_attrs2 = cktest_keygen_noparams_rsa_priv;
+			ck_count2 = ARRAY_SIZE(cktest_keygen_noparams_rsa_priv);
+			break;
+
+		default:
+			continue;
+		}
+
+		Do_ADBG_BeginSubCase(c, "Generate %s key",
+					keygen_noparams_key_types[n].name);
+
+
+		rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			return;
+
+
+		if (set_ck_attr(ck_attrs, ck_count, CKA_KEY_TYPE,
+				(void **)&ck_key_type, sizeof(ck_key_type)))
+			goto broken_test;
+
+		for (key_size = min_size; key_size <= max_size;
+		     key_size += quanta) {
+			bool r;
+
+			switch (keygen_noparams_key_types[n].key_type) {
+			case TEE_TYPE_AES:
+			case TEE_TYPE_HMAC_MD5:
+			case TEE_TYPE_HMAC_SHA1:
+			case TEE_TYPE_HMAC_SHA224:
+			case TEE_TYPE_HMAC_SHA256:
+			case TEE_TYPE_HMAC_SHA384:
+			case TEE_TYPE_HMAC_SHA512:
+			case TEE_TYPE_GENERIC_SECRET:
+				ck_key_size = key_size;
+				if (set_ck_attr(ck_attrs, ck_count, CKA_VALUE_LEN,
+						(void *)&ck_key_size,
+						sizeof(ck_key_size)))
+					goto broken_test;
+
+				break;
+
+			case TEE_TYPE_DES:
+			case TEE_TYPE_DES3:
+				continue;
+
+			case TEE_TYPE_RSA_KEYPAIR:
+				ck_key_size = key_size;
+				if (set_ck_attr(ck_attrs, ck_count, CKA_MODULUS_BITS,
+						(void *)&ck_key_size,
+						sizeof(ck_key_size)))
+					goto broken_test;
+				break;
+
+			default:
+				continue;
+			}
+
+			r = cktest_generate_and_test_key(c, session, &ck_mecha,
+							 ck_attrs, ck_count,
+							 ck_attrs2, ck_count2,
+							 1 /*test size*/,
+							 key_size, NULL, 0);
+
+			if (!ADBG_EXPECT_TRUE(c, r))
+				break;
+		}
+
+		C_CloseSession(session);
+
+		Do_ADBG_EndSubCase(c, "Generate %s key",
+					keygen_noparams_key_types[n].name);
+	}
+
+	return;
+
+broken_test:
+	Do_ADBG_Log("Broken test setup for key %s",
+			keygen_noparams_key_types[n].name);
+	ADBG_EXPECT_TRUE(c, false);
+
+	C_CloseSession(session);
+
+	Do_ADBG_EndSubCase(c, NULL);
+}
+#endif
 
 static void xtest_test_keygen_dh(ADBG_Case_t *c, TEEC_Session *session)
 {
@@ -6162,6 +6455,26 @@ static void xtest_tee_test_4007(ADBG_Case_t *c)
 
 	TEEC_CloseSession(&session);
 }
+
+#ifdef CFG_SECURE_KEY_SERVICES
+/*
+ * The test below belongs to the regression 41xx test. As it relies on test
+ * vectors defined for the 40xx test, this test sequence is implemented here.
+ * The test below checks compliance of crypto algorithms called through the
+ * PKCS#11 interface.
+ */
+void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot)
+{
+	cktest_keygen_noparams(c, slot);
+
+	//cktest_keygen_dh(c, slot);
+
+	//cktest_keygen_dsa(c, slot);
+
+	//cktest_keygen_ecc(c, slot);
+}
+#endif
 
 static void xtest_tee_test_4008(ADBG_Case_t *c)
 {
