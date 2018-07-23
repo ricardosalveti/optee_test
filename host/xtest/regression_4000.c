@@ -78,6 +78,8 @@ ADBG_CASE_DEFINE(regression, 4012, xtest_tee_test_4012,
 #endif
 
 #ifdef CFG_SECURE_KEY_SERVICES
+int ck_ec_params_attr_from_tee_algo(CK_ATTRIBUTE *attrs, size_t count,
+					 uint32_t algo);
 
 /*
  * Load an attribute value (value data and value size) in a PKCS#11 object
@@ -102,6 +104,59 @@ static int set_ck_attr(CK_ATTRIBUTE *attrs, size_t count, CK_ULONG id,
 	set_ck_attr((CK_ATTRIBUTE *)attrs, ARRAY_SIZE(attrs), id, \
 			(CK_VOID_PTR)data, (CK_ULONG)size)
 
+/*
+ * DER encoding of elliptic curves supported by the
+ * GPD TEE Core Internal API v1.2
+ */
+static const uint8_t nist_secp192r1_der[] = {
+	0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x01
+};
+static const uint8_t nist_secp224r1_der[] = {
+	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x21
+};
+static const uint8_t nist_secp256r1_der[] = {
+	0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07
+};
+static const uint8_t nist_secp384r1_der[] = {
+	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x22
+};
+static const uint8_t nist_secp521r1_der[] = {
+	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x23
+};
+
+int ck_ec_params_attr_from_tee_algo(CK_ATTRIBUTE *attrs, size_t count,
+					 uint32_t algo)
+{
+	void *der;
+	size_t size;
+
+	switch (algo) {
+	case TEE_ALG_ECDSA_P192:
+		der = (void *)nist_secp192r1_der;
+		size = sizeof(nist_secp192r1_der);
+		break;
+	case TEE_ALG_ECDSA_P224:
+		der = (void *)nist_secp224r1_der;
+		size = sizeof(nist_secp224r1_der);
+		break;
+	case TEE_ALG_ECDSA_P256:
+		der = (void *)nist_secp256r1_der;
+		size = sizeof(nist_secp256r1_der);
+		break;
+	case TEE_ALG_ECDSA_P384:
+		der = (void *)nist_secp384r1_der;
+		size = sizeof(nist_secp384r1_der);
+		break;
+	case TEE_ALG_ECDSA_P521:
+		der = (void *)nist_secp521r1_der;
+		size = sizeof(nist_secp521r1_der);
+		break;
+	default:
+		return -1;
+	}
+
+	return set_ck_attr(attrs, count, CKA_EC_PARAMS, der, size);
+}
 #endif /*CFG_SECURE_KEY_SERVICES*/
 
 static TEEC_Result ta_crypt_cmd_random_number_generate(ADBG_Case_t *c,
@@ -5179,30 +5234,32 @@ static CK_ATTRIBUTE rsa_key_priv_attr2[] = {
 };
 
 static CK_UTF8CHAR label_ec_pub[] = "Generic EC public key for testing";
-static CK_ATTRIBUTE __unused ec_key_pub_attr[] = {
+static CK_ATTRIBUTE __unused cktest_ec_key_pub_attr[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PUBLIC_KEY},
 		sizeof(CK_OBJECT_CLASS) },
 	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_EC}, sizeof(CK_KEY_TYPE) },
 	{ CKA_VERIFY, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_LABEL, label_ec_pub, sizeof(label_ec_pub) - 1 },
-	//{ CKA_ID, (void *)NULL, 0 }, ???
-	{ CKA_EC_PARAMS, (void *)NULL, 0 },                            // to fill at runtime
-	{ CKA_EC_POINT, (void *)NULL, 0 },                             // to fill at runtime
+	{ CKA_EC_PARAMS, (void *)NULL, 0 },		// to fill at runtime
+	{ CKA_EC_POINT, (void *)NULL, 0 },		// to fill at runtime
+	{ CKA_VENDOR_EC_POINT_Y, (void *)NULL, 0 },	// to fill at runtime
+	{ CKA_VENDOR_EC_POINT_X, (void *)NULL, 0 },	// to fill at runtime
 };
 
-CK_UTF8CHAR label_ec_priv[] = "Generic RSA private key for testing";
-CK_ATTRIBUTE ec_key_priv_attr[] = {
+CK_UTF8CHAR label_ec_priv[] = "Generic EC private key for testing";
+CK_ATTRIBUTE cktest_ec_key_priv_attr[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
 		sizeof(CK_OBJECT_CLASS) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_EC}, sizeof(CK_KEY_TYPE) },
 	{ CKA_SENSITIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_DERIVE, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_LABEL, label_ec_priv, sizeof(label_ec_priv) - 1 },
 	{ CKA_SUBJECT, (void *)NULL, 0 },
-	{ CKA_ID, (void *)NULL, 0 },
 	{ CKA_EC_PARAMS, (void *)NULL, 0 },
 	{ CKA_VALUE, (void *)NULL, 0 },
+	{ CKA_VENDOR_EC_POINT_Y, (void *)NULL, 0 },	// to fill at runtime
+	{ CKA_VENDOR_EC_POINT_X, (void *)NULL, 0 },	// to fill at runtime
 };
 
 #define CKTEST_RSA_PSS_PARAMS(_label, _algo, _mgf)	\
@@ -5259,7 +5316,6 @@ struct mechanism_converter {
 		.tee_algo = (uint32_t)(_tee_algo),		\
 	}
 
-
 static struct mechanism_converter mechanism_converter[] = {
 	MECHA_CONV_NOPARAM(CKM_SHA1_RSA_PKCS,
 			TEE_ALG_RSASSA_PKCS1_V1_5_SHA1),
@@ -5295,14 +5351,12 @@ static struct mechanism_converter mechanism_converter[] = {
 			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA384),
 	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha512_params,
 			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA512),
-#if 0
-	// TODO
-	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P192),
-	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P224),
-	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P256),
-	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P384),
-	MECHA_CONV_ITEM(CKM_ECDSA, &ecdsa_params, TEE_ALG_ECDSA_P521),
-#endif
+
+	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P192),
+	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P224),
+	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P256),
+	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P384),
+	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P521),
 };
 
 static int tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha)
@@ -5525,8 +5579,50 @@ void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot)
 
 			break;
 
-		default:
+		case TEE_MAIN_ALGO_ECDSA:
+			ck_ec_params_attr_from_tee_algo(
+					cktest_ec_key_priv_attr,
+					ARRAY_SIZE(cktest_ec_key_priv_attr),
+					tv->algo);
 
+			SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_VALUE,
+					tv->params.ecdsa.private,
+					tv->params.ecdsa.private_len);
+
+			SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_VENDOR_EC_POINT_X,
+				       tv->params.ecdsa.public_x,
+				       tv->params.ecdsa.public_x_len);
+			SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_VENDOR_EC_POINT_Y,
+				       tv->params.ecdsa.public_y,
+				       tv->params.ecdsa.public_y_len);
+
+			rv = C_CreateObject(session, cktest_ec_key_priv_attr,
+					    ARRAY_SIZE(cktest_ec_key_priv_attr),
+					    &priv_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			ck_ec_params_attr_from_tee_algo(
+					cktest_ec_key_pub_attr,
+					ARRAY_SIZE(cktest_ec_key_pub_attr),
+					tv->algo);
+
+			SET_CK_ATTR(cktest_ec_key_pub_attr, CKA_VENDOR_EC_POINT_X,
+				       tv->params.ecdsa.public_x,
+				       tv->params.ecdsa.public_x_len);
+			SET_CK_ATTR(cktest_ec_key_pub_attr, CKA_VENDOR_EC_POINT_Y,
+				       tv->params.ecdsa.public_y,
+				       tv->params.ecdsa.public_y_len);
+
+			rv = C_CreateObject(session, cktest_ec_key_pub_attr,
+					    ARRAY_SIZE(cktest_ec_key_pub_attr),
+					    &pub_key_handle);
+			if (!ADBG_EXPECT_CK_OK(c, rv))
+				goto out;
+
+			break;
+
+		default:
 			break;
 		}
 
