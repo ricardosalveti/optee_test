@@ -28,6 +28,9 @@
 #include "xtest_test.h"
 #include "xtest_helpers.h"
 
+int ck_ec_params_attr_from_tee_curve(CK_ATTRIBUTE *attrs, size_t count,
+					 uint32_t curve);
+
 /*
  * Some PKCS#11 object resources used in the tests
  */
@@ -235,6 +238,7 @@ void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot);
 void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot);
 void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot);
 void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4118(ADBG_Case_t *c, CK_SLOT_ID slot);
 
 static void cktest_in_regression_40xx(ADBG_Case_t *c, int test_id)
 {
@@ -274,6 +278,9 @@ static void cktest_in_regression_40xx(ADBG_Case_t *c, int test_id)
 		break;
 	case 4117:
 		run_xtest_tee_test_4117(c, slot);
+		break;
+	case 4118:
+		run_xtest_tee_test_4118(c, slot);
 		break;
 	default:
 		ADBG_EXPECT_TRUE(c, false);
@@ -2455,6 +2462,11 @@ static void xtest_tee_test_4117(ADBG_Case_t *c)
 	cktest_in_regression_40xx(c, 4117);
 }
 
+static void xtest_tee_test_4118(ADBG_Case_t *c)
+{
+	cktest_in_regression_40xx(c, 4118);
+}
+
 ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
 		"PKCS11: Initialize and close Cryptoki library");
 ADBG_CASE_DEFINE(regression, 4102, xtest_tee_test_4102,
@@ -2489,3 +2501,5 @@ ADBG_CASE_DEFINE(regression, 4116, xtest_tee_test_4116,
 		"PKCS11: Test key generation");
 ADBG_CASE_DEFINE(regression, 4117, xtest_tee_test_4117,
 		"PKCS11: Compliance of asymmetric ciphering processings");
+ADBG_CASE_DEFINE(regression, 4118, xtest_tee_test_4118,
+		"PKCS11: Compliance of ECDH processings (weak: key not checked)");

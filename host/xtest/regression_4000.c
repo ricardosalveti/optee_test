@@ -78,6 +78,8 @@ ADBG_CASE_DEFINE(regression, 4012, xtest_tee_test_4012,
 #endif
 
 #ifdef CFG_SECURE_KEY_SERVICES
+int ck_ec_params_attr_from_tee_curve(CK_ATTRIBUTE *attrs, size_t count,
+					 uint32_t curve);
 int ck_ec_params_attr_from_tee_algo(CK_ATTRIBUTE *attrs, size_t count,
 					 uint32_t algo);
 
@@ -123,6 +125,40 @@ static const uint8_t nist_secp384r1_der[] = {
 static const uint8_t nist_secp521r1_der[] = {
 	0x06, 0x05, 0x2b, 0x81, 0x04, 0x00, 0x23
 };
+
+int ck_ec_params_attr_from_tee_curve(CK_ATTRIBUTE *attrs, size_t count,
+					 uint32_t curve)
+{
+	void *der;
+	size_t size;
+
+	switch (curve) {
+	case TEE_ECC_CURVE_NIST_P192:
+		der = (void *)nist_secp192r1_der;
+		size = sizeof(nist_secp192r1_der);
+		break;
+	case TEE_ECC_CURVE_NIST_P224:
+		der = (void *)nist_secp224r1_der;
+		size = sizeof(nist_secp224r1_der);
+		break;
+	case TEE_ECC_CURVE_NIST_P256:
+		der = (void *)nist_secp256r1_der;
+		size = sizeof(nist_secp256r1_der);
+		break;
+	case TEE_ECC_CURVE_NIST_P384:
+		der = (void *)nist_secp384r1_der;
+		size = sizeof(nist_secp384r1_der);
+		break;
+	case TEE_ECC_CURVE_NIST_P521:
+		der = (void *)nist_secp521r1_der;
+		size = sizeof(nist_secp521r1_der);
+		break;
+	default:
+		return -1;
+	}
+
+	return set_ck_attr(attrs, count, CKA_EC_PARAMS, der, size);
+}
 
 int ck_ec_params_attr_from_tee_algo(CK_ATTRIBUTE *attrs, size_t count,
 					 uint32_t algo)
@@ -5292,6 +5328,14 @@ static CKTEST_RSA_OAEP_PARAMS(oaep_sha256_params, CKM_SHA256, CKG_MGF1_SHA256);
 static CKTEST_RSA_OAEP_PARAMS(oaep_sha384_params, CKM_SHA384, CKG_MGF1_SHA384);
 static CKTEST_RSA_OAEP_PARAMS(oaep_sha512_params, CKM_SHA512, CKG_MGF1_SHA512);
 
+static CK_ECDH1_DERIVE_PARAMS cktest_ecdh_params = {
+	.kdf = CKD_NULL,
+	.ulSharedDataLen = 0,
+	.pSharedData = NULL,
+	.ulPublicDataLen = 0,	/* Set at runtime */
+	.pPublicData = NULL,	/* Set at runtime */
+};
+
 /* Convert a TEE algorithm into a PKCS#11 CK mechanism identifier */
 struct mechanism_converter {
 	CK_MECHANISM_TYPE ckMechanismType;
@@ -5357,6 +5401,17 @@ static struct mechanism_converter mechanism_converter[] = {
 	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P256),
 	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P384),
 	MECHA_CONV_NOPARAM(CKM_ECDSA, TEE_ALG_ECDSA_P521),
+
+	MECHA_CONV_ITEM(CKM_ECDH1_DERIVE, cktest_ecdh_params,
+			TEE_ALG_ECDH_P192),
+	MECHA_CONV_ITEM(CKM_ECDH1_DERIVE, cktest_ecdh_params,
+			TEE_ALG_ECDH_P224),
+	MECHA_CONV_ITEM(CKM_ECDH1_DERIVE, cktest_ecdh_params,
+			TEE_ALG_ECDH_P256),
+	MECHA_CONV_ITEM(CKM_ECDH1_DERIVE, cktest_ecdh_params,
+			TEE_ALG_ECDH_P384),
+	MECHA_CONV_ITEM(CKM_ECDH1_DERIVE, cktest_ecdh_params,
+			TEE_ALG_ECDH_P521),
 };
 
 static int tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha)
@@ -6803,6 +6858,157 @@ out:
 noerror:
 	TEEC_CloseSession(&session);
 }
+
+#ifdef CFG_SECURE_KEY_SERVICES
+/*
+ * The test below belongs to the regression 41xx test. As it relies on test
+ * vectors defined for the 40xx test, this test sequence is implemented here.
+ * The test below checks compliance of crypto algorithms called through the
+ * PKCS#11 interface.
+ */
+void run_xtest_tee_test_4118(ADBG_Case_t *c, CK_SLOT_ID slot);
+
+void run_xtest_tee_test_4118(ADBG_Case_t *c, CK_SLOT_ID slot)
+{
+	uint32_t size_bytes;
+	uint32_t i;
+	struct derive_key_ecdh_t *pt;
+	CK_OBJECT_HANDLE derived_key_handle;
+	CK_OBJECT_HANDLE priv_key_handle;
+	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
+	CK_RV rv;
+
+	rv = C_OpenSession(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION,
+			   NULL, 0, &session);
+	if (!ADBG_EXPECT_CK_OK(c, rv))
+		goto out;
+
+	for (i = 0; i < ARRAY_SIZE(derive_key_ecdh); i++) {
+		CK_ATTRIBUTE derived_key_template[] = {
+			{ CKA_EXTRACTABLE, &(CK_BBOOL){CK_TRUE},
+						sizeof(CK_BBOOL) },
+			{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_GENERIC_SECRET},
+						sizeof(CK_KEY_TYPE) },
+			{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_SECRET_KEY},
+						sizeof(CK_OBJECT_CLASS) },
+			{ CKA_VALUE_LEN, &(CK_ULONG){0}, sizeof(CK_ULONG) },
+		};
+		uint8_t derived_key_value[16];
+		CK_ATTRIBUTE get_derived_key_template[] = {
+			{ CKA_VALUE, &(CK_VOID_PTR){&derived_key_value},
+						sizeof(derived_key_value) },
+		};
+		CK_MECHANISM ck_mechanism = { 0 };
+		CK_ECDH1_DERIVE_PARAMS *edch_params;
+		CK_ULONG ck_key_bit_size;
+
+		pt = &derive_key_ecdh[i];
+
+		if (pt->level > level)
+			continue;
+
+		size_bytes = (pt->keysize + 7) / 8;
+
+		Do_ADBG_BeginSubCase(c, "Derive ECDH key - (%u bits, %u bytes)",
+					pt->keysize, size_bytes);
+
+		if (ck_ec_params_attr_from_tee_curve(cktest_ec_key_priv_attr,
+					ARRAY_SIZE(cktest_ec_key_priv_attr),
+					pt->curve) ||
+		    SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_VALUE,
+			        pt->private, size_bytes)) {
+			Do_ADBG_Log("Invalid test setup");
+			ADBG_EXPECT_TRUE(c, false);
+			goto out;
+		}
+
+		rv = C_CreateObject(session, cktest_ec_key_priv_attr,
+				    ARRAY_SIZE(cktest_ec_key_priv_attr),
+				    &priv_key_handle);
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto out;
+
+		/* Fill Cryptoki mechanism structure from OP-TEE native vectors */
+	        if (tee_alg2ckmt(pt->algo, &ck_mechanism) ||
+		    ck_mechanism.ulParameterLen !=
+				sizeof(CK_ECDH1_DERIVE_PARAMS)) {
+			Do_ADBG_Log("Invalid test setup");
+			ADBG_EXPECT_TRUE(c, false);
+			goto out;
+		}
+
+		edch_params = (CK_ECDH1_DERIVE_PARAMS *)ck_mechanism.pParameter;
+
+		/* Public data can be passed as bignum in derive parameters */
+		edch_params->pPublicData = malloc(size_bytes * 2);
+		if (!edch_params->pPublicData) {
+			ADBG_EXPECT_TRUE(c, false);
+			goto out;
+		}
+
+		ck_key_bit_size = pt->keysize;
+		if (SET_CK_ATTR(derived_key_template, CKA_VALUE_LEN,
+			        &ck_key_bit_size, sizeof(CK_ULONG))) {
+			Do_ADBG_Log("Invalid test setup");
+			ADBG_EXPECT_TRUE(c, false);
+			goto out;
+		}
+
+		memcpy(&edch_params->pPublicData[0],
+				pt->public_x, size_bytes);
+		memcpy(&edch_params->pPublicData[size_bytes],
+				pt->public_y, size_bytes);
+		edch_params->ulPublicDataLen = size_bytes * 2;
+
+		rv = C_DeriveKey(session, &ck_mechanism, priv_key_handle,
+				 &derived_key_template[0],
+				 ARRAY_SIZE(derived_key_template),
+				 &derived_key_handle);
+
+		free(cktest_ecdh_params.pPublicData);
+		cktest_ecdh_params.pPublicData = NULL;
+
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto out;
+
+		memset(get_derived_key_template[0].pValue, 0,
+			get_derived_key_template[0].ulValueLen);
+
+		rv = C_GetAttributeValue(session, derived_key_handle,
+					 &get_derived_key_template[0], 1);
+#if 0
+		if (!ADBG_EXPECT_CK_OK(c, rv)) {
+			goto out;
+
+		if (!ADBG_EXPECT_BUFFER(c, pt->out, size_bytes,
+					get_derived_key_template[0].pValue,
+					get_derived_key_template[0].ulValueLen))
+			goto out;
+#endif
+
+		rv = C_DestroyObject(session, priv_key_handle);
+
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto out;
+
+		rv = C_DestroyObject(session, derived_key_handle);
+
+		if (!ADBG_EXPECT_CK_OK(c, rv))
+			goto out;
+
+		Do_ADBG_EndSubCase(c, NULL);
+	}
+
+	goto noerror;
+
+out:
+	Do_ADBG_EndSubCase(c, NULL);
+
+noerror:
+	rv = C_CloseSession(session);
+	ADBG_EXPECT_CK_OK(c, rv);
+}
+#endif /*CFG_SECURE_KEY_SERVICES*/
 
 static void xtest_tee_test_4010(ADBG_Case_t *c)
 {
