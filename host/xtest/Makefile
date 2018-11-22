@@ -77,7 +77,7 @@ srcs += sdp_basic.c
 endif
 
 ifeq ($(CFG_SECURE_KEY_SERVICES),y)
-srcs += regression_4100.c
+srcs += regression_4200.c
 OPTEE_SKS_HEADERS ?= ../../../optee_client/libsks/include
 CFLAGS += -DCFG_SECURE_KEY_SERVICES
 CFLAGS += -I$(OPTEE_SKS_HEADERS)

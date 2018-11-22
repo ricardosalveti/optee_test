@@ -76,7 +76,7 @@ if (CFG_SECURE_DATA_PATH)
 endif()
 
 if (CFG_SECURE_KEY_SERVICES)
-	list (APPEND SRC regression_4100.c)
+	list (APPEND SRC regression_4200.c)
 endif()
 
 ################################################################################

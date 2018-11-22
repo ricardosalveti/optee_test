@@ -1861,7 +1861,7 @@ out:
  * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4211(ADBG_Case_t *c, CK_SLOT_ID slot);
 
 /* AES CMAC test resrouces */
 #define CK_MAC_KEY_AES(_key_array) \
@@ -2088,7 +2088,7 @@ static int get_ck_mac_case(size_t mac_case_index, CK_MECHANISM_PTR *mechanism,
 	return 0;
 }
 
-void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot)
+void run_xtest_tee_test_4211(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
@@ -2965,7 +2965,7 @@ out:
  * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4210(ADBG_Case_t *c, CK_SLOT_ID slot);
 
 #define CK_CIPHERING_KEY_AES(_key_array) \
 	{								\
@@ -3098,7 +3098,7 @@ static int get_ck_ciph_case(size_t ciph_case_index, CK_MECHANISM_PTR *mechanism,
 	return 0;
 }
 
-void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot)
+void run_xtest_tee_test_4210(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
@@ -3510,7 +3510,7 @@ out:
  * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4212(ADBG_Case_t *c, CK_SLOT_ID slot);
 
 /* AES CMAC test resrouces */
 #define CK_AE_KEY_AES(_key_array) \
@@ -3628,7 +3628,7 @@ static const struct cktest_ae_test_case cktest_ae_test_case[] = {
 	CKTEST_AE_AES_CASE(gcm, vect18),
 };
 
-void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot)
+void run_xtest_tee_test_4212(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
@@ -5225,7 +5225,7 @@ out:
  * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot);
 
 static CK_UTF8CHAR label_rsa_pub[] = "Generic RSA public key for testing";
 static CK_ATTRIBUTE rsa_key_pub_attr[] = {
@@ -5436,7 +5436,7 @@ static int tee_alg2ckmt(uint32_t tee_alg, CK_MECHANISM_PTR mecha)
 	return 1;
 }
 
-void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot)
+void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	CK_RV rv;
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
@@ -6620,8 +6620,8 @@ static void xtest_tee_test_4007(ADBG_Case_t *c)
  * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot)
+void run_xtest_tee_test_4216(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4216(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	cktest_keygen_noparams(c, slot);
 
@@ -6866,9 +6866,9 @@ noerror:
  * The test below checks compliance of crypto algorithms called through the
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4118(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4218(ADBG_Case_t *c, CK_SLOT_ID slot);
 
-void run_xtest_tee_test_4118(ADBG_Case_t *c, CK_SLOT_ID slot)
+void run_xtest_tee_test_4218(ADBG_Case_t *c, CK_SLOT_ID slot)
 {
 	uint32_t size_bytes;
 	uint32_t i;

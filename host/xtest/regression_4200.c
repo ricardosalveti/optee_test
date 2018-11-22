@@ -228,17 +228,17 @@ CK_RV logout_test_token(CK_SESSION_HANDLE session)
 }
 
 /*
- * The test below belongs to the regression 41xx test. As it rely on test
+ * The test below belongs to the regression 42xx test. As it rely on test
  * vectors define for the 40xx test, this test sequence in implemented here.
  * The test below check compliance of crypto algorithms called throug the SKS
  * PKCS#11 interface.
  */
-void run_xtest_tee_test_4110(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4111(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4112(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4116(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4117(ADBG_Case_t *c, CK_SLOT_ID slot);
-void run_xtest_tee_test_4118(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4210(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4211(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4212(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4216(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot);
+void run_xtest_tee_test_4218(ADBG_Case_t *c, CK_SLOT_ID slot);
 
 static void cktest_in_regression_40xx(ADBG_Case_t *c, int test_id)
 {
@@ -264,23 +264,23 @@ static void cktest_in_regression_40xx(ADBG_Case_t *c, int test_id)
 		goto bail;
 
 	switch (test_id) {
-	case 4110:
-		run_xtest_tee_test_4110(c, slot);
+	case 4210:
+		run_xtest_tee_test_4210(c, slot);
 		break;
-	case 4111:
-		run_xtest_tee_test_4111(c, slot);
+	case 4211:
+		run_xtest_tee_test_4211(c, slot);
 		break;
-	case 4112:
-		run_xtest_tee_test_4112(c, slot);
+	case 4212:
+		run_xtest_tee_test_4212(c, slot);
 		break;
-	case 4116:
-		run_xtest_tee_test_4116(c, slot);
+	case 4216:
+		run_xtest_tee_test_4216(c, slot);
 		break;
-	case 4117:
-		run_xtest_tee_test_4117(c, slot);
+	case 4217:
+		run_xtest_tee_test_4217(c, slot);
 		break;
-	case 4118:
-		run_xtest_tee_test_4118(c, slot);
+	case 4218:
+		run_xtest_tee_test_4218(c, slot);
 		break;
 	default:
 		ADBG_EXPECT_TRUE(c, false);
@@ -295,7 +295,7 @@ bail:
 	close_lib();
 }
 
-static void xtest_tee_test_4101(ADBG_Case_t *c)
+static void xtest_tee_test_4201(ADBG_Case_t *c)
 {
 	CK_RV rv;
 
@@ -318,7 +318,7 @@ static void xtest_tee_test_4101(ADBG_Case_t *c)
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4102(ADBG_Case_t *c)
+static void xtest_tee_test_4202(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID_PTR slot_ids = NULL;
@@ -454,7 +454,7 @@ out:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4103(ADBG_Case_t *c)
+static void xtest_tee_test_4203(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -507,7 +507,7 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4104(ADBG_Case_t *c)
+static void xtest_tee_test_4204(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -931,7 +931,7 @@ static int clear_ck_attr(CK_ATTRIBUTE *attrs, size_t count, CK_ULONG id)
 	clear_ck_attr((CK_ATTRIBUTE *)attrs, ARRAY_SIZE(attrs), id)
 
 /* Generate a generic secret */
-static void xtest_tee_test_4105(ADBG_Case_t *c)
+static void xtest_tee_test_4205(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -1327,7 +1327,7 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4106(ADBG_Case_t *c)
+static void xtest_tee_test_4206(ADBG_Case_t *c)
 {
 	Do_ADBG_BeginSubCase(c, "Create and destroy a volatile object");
 	test_create_destroy_single_object(c, 0);
@@ -1399,7 +1399,7 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4107(ADBG_Case_t *c)
+static void xtest_tee_test_4207(ADBG_Case_t *c)
 {
 	Do_ADBG_BeginSubCase(c, "Create objects in a read-only session");
 	test_create_objects_in_session(c, 0);
@@ -1588,7 +1588,7 @@ CK_KEY_ALLOWED_AES_ENC_TEST(cktest_aes_enc_only_gcm, allowed_only_aes_gcm);
 CK_KEY_ALLOWED_AES_DEC_TEST(cktest_aes_dec_only_ctr, allowed_only_aes_ctr);
 CK_KEY_ALLOWED_AES_DEC_TEST(cktest_aes_dec_only_ccm, allowed_only_aes_ccm);
 
-static void xtest_tee_test_4108(ADBG_Case_t *c)
+static void xtest_tee_test_4208(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -1649,7 +1649,7 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4109(ADBG_Case_t *c)
+static void xtest_tee_test_4209(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -1748,19 +1748,19 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4110(ADBG_Case_t *c)
+static void xtest_tee_test_4210(ADBG_Case_t *c)
 {
-	cktest_in_regression_40xx(c, 4110);
+	cktest_in_regression_40xx(c, 4210);
 }
 
-static void xtest_tee_test_4111(ADBG_Case_t *c)
+static void xtest_tee_test_4211(ADBG_Case_t *c)
 {
-	cktest_in_regression_40xx(c, 4111);
+	cktest_in_regression_40xx(c, 4211);
 }
 
-static void xtest_tee_test_4112(ADBG_Case_t *c)
+static void xtest_tee_test_4212(ADBG_Case_t *c)
 {
-	cktest_in_regression_40xx(c, 4112);
+	cktest_in_regression_40xx(c, 4212);
 }
 
 static CK_RV open_cipher_session(ADBG_Case_t *c,
@@ -1809,7 +1809,7 @@ bail:
 	return rv;
 }
 
-static void xtest_tee_test_4113(ADBG_Case_t *c)
+static void xtest_tee_test_4213(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -2043,7 +2043,7 @@ bail:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4114(ADBG_Case_t *c)
+static void xtest_tee_test_4214(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -2307,7 +2307,7 @@ bail0:
 	Do_ADBG_EndSubCase(c, NULL);
 }
 
-static void xtest_tee_test_4115(ADBG_Case_t *c)
+static void xtest_tee_test_4215(ADBG_Case_t *c)
 {
 	CK_RV rv;
 	CK_SLOT_ID slot;
@@ -2452,54 +2452,54 @@ bail0:
 	ADBG_EXPECT_CK_OK(c, rv);
 }
 
-static void xtest_tee_test_4116(ADBG_Case_t *c)
+static void xtest_tee_test_4216(ADBG_Case_t *c)
 {
-	cktest_in_regression_40xx(c, 4116);
+	cktest_in_regression_40xx(c, 4216);
 }
 
-static void xtest_tee_test_4117(ADBG_Case_t *c)
+static void xtest_tee_test_4217(ADBG_Case_t *c)
 {
-	cktest_in_regression_40xx(c, 4117);
+	cktest_in_regression_40xx(c, 4217);
 }
 
-static void xtest_tee_test_4118(ADBG_Case_t *c)
+static void xtest_tee_test_4218(ADBG_Case_t *c)
 {
-	cktest_in_regression_40xx(c, 4118);
+	cktest_in_regression_40xx(c, 4218);
 }
 
-ADBG_CASE_DEFINE(regression, 4101, xtest_tee_test_4101,
+ADBG_CASE_DEFINE(regression, 4201, xtest_tee_test_4201,
 		"PKCS11: Initialize and close Cryptoki library");
-ADBG_CASE_DEFINE(regression, 4102, xtest_tee_test_4102,
+ADBG_CASE_DEFINE(regression, 4202, xtest_tee_test_4202,
 		"PKCS11: Connect token and get some token info");
-ADBG_CASE_DEFINE(regression, 4103, xtest_tee_test_4103,
+ADBG_CASE_DEFINE(regression, 4203, xtest_tee_test_4203,
 		"PKCS11: Open and close PKCS#11 sessions");
-ADBG_CASE_DEFINE(regression, 4104, xtest_tee_test_4104,
+ADBG_CASE_DEFINE(regression, 4204, xtest_tee_test_4204,
 		"PKCS11: Login tests (TODO: still weak)");
-ADBG_CASE_DEFINE(regression, 4105, xtest_tee_test_4105,
+ADBG_CASE_DEFINE(regression, 4205, xtest_tee_test_4205,
 		"PKCS11: Generate objects");
-ADBG_CASE_DEFINE(regression, 4106, xtest_tee_test_4106,
+ADBG_CASE_DEFINE(regression, 4206, xtest_tee_test_4206,
 		"PKCS11: Create and destroy sesion and token objects");
-ADBG_CASE_DEFINE(regression, 4107, xtest_tee_test_4107,
+ADBG_CASE_DEFINE(regression, 4207, xtest_tee_test_4207,
 		"PKCS11: Create objects in read-only and read-write sessions");
-ADBG_CASE_DEFINE(regression, 4108, xtest_tee_test_4108,
+ADBG_CASE_DEFINE(regression, 4208, xtest_tee_test_4208,
 		"PKCS11: Check ciphering with valid and invalid keys #1");
-ADBG_CASE_DEFINE(regression, 4109, xtest_tee_test_4109,
+ADBG_CASE_DEFINE(regression, 4209, xtest_tee_test_4209,
 		"PKCS11: Check ciphering with valid and invalid keys #2");
-ADBG_CASE_DEFINE(regression, 4110, xtest_tee_test_4110,
+ADBG_CASE_DEFINE(regression, 4210, xtest_tee_test_4210,
 		"PKCS11: Compliance of ciphering processings");
-ADBG_CASE_DEFINE(regression, 4111, xtest_tee_test_4111,
+ADBG_CASE_DEFINE(regression, 4211, xtest_tee_test_4211,
 		"PKCS11: Compliance of MAC signing processings");
-ADBG_CASE_DEFINE(regression, 4112, xtest_tee_test_4112,
+ADBG_CASE_DEFINE(regression, 4212, xtest_tee_test_4212,
 		"PKCS11: Compliance of AES CCM/GCM ciphering processings");
-ADBG_CASE_DEFINE(regression, 4113, xtest_tee_test_4113, /*  TODO: rename 4110 */
+ADBG_CASE_DEFINE(regression, 4213, xtest_tee_test_4213,
 		"PKCS11: Check operations release at session closure");
-ADBG_CASE_DEFINE(regression, 4114, xtest_tee_test_4114,
+ADBG_CASE_DEFINE(regression, 4214, xtest_tee_test_4214,
 		"PKCS11: Object lookup");
-ADBG_CASE_DEFINE(regression, 4115, xtest_tee_test_4115,
+ADBG_CASE_DEFINE(regression, 4215, xtest_tee_test_4215,
 		"PKCS11: Private object accesses");
-ADBG_CASE_DEFINE(regression, 4116, xtest_tee_test_4116,
+ADBG_CASE_DEFINE(regression, 4216, xtest_tee_test_4216,
 		"PKCS11: Test key generation");
-ADBG_CASE_DEFINE(regression, 4117, xtest_tee_test_4117,
+ADBG_CASE_DEFINE(regression, 4217, xtest_tee_test_4217,
 		"PKCS11: Compliance of asymmetric ciphering processings");
-ADBG_CASE_DEFINE(regression, 4118, xtest_tee_test_4118,
+ADBG_CASE_DEFINE(regression, 4218, xtest_tee_test_4218,
 		"PKCS11: Compliance of ECDH processings (weak: key not checked)");
