@@ -5360,7 +5360,10 @@ static struct mechanism_converter mechanism_converter[] = {
 	MECHA_CONV_ITEM(CKM_SHA512_RSA_PKCS_PSS, pss_sha512_params,
 			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA512),
 
-	MECHA_CONV_NOPARAM(CKM_RSA_PKCS, TEE_ALG_RSAES_PKCS1_V1_5),
+	MECHA_CONV_NOPARAM(CKM_RSA_PKCS,
+			   TEE_ALG_RSAES_PKCS1_V1_5),
+	MECHA_CONV_NOPARAM(CKM_RSA_PKCS,
+			   TEE_ALG_RSASSA_PKCS1_V1_5),
 
 	MECHA_CONV_ITEM(CKM_RSA_PKCS_OAEP, oaep_sha1_params,
 			TEE_ALG_RSAES_PKCS1_OAEP_MGF1_SHA1),
@@ -5493,6 +5496,10 @@ void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot)
 			if (TEE_ALG_GET_MAIN_ALG(tv->algo) ==
 							TEE_MAIN_ALGO_ECDSA)
 				hash_algo = TEE_ALG_SHA1;
+#if defined(CFG_CRYPTO_RSASSA_NA1)
+			else if (tv->algo == TEE_ALG_RSASSA_PKCS1_V1_5)
+				hash_algo = TEE_ALG_SHA256;
+#endif
 			else
 				hash_algo = TEE_ALG_HASH_ALGO(
 					TEE_ALG_GET_DIGEST_HASH(tv->algo));
