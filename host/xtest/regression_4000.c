@@ -5339,15 +5339,15 @@ struct mechanism_converter {
 
 static struct mechanism_converter mechanism_converter[] = {
 	MECHA_CONV_NOPARAM(CKM_SHA1_RSA_PKCS,
-			TEE_ALG_RSASSA_PKCS1_V1_5_SHA1),
+			   TEE_ALG_RSASSA_PKCS1_V1_5_SHA1),
 	MECHA_CONV_NOPARAM(CKM_SHA224_RSA_PKCS,
-			TEE_ALG_RSASSA_PKCS1_V1_5_SHA224),
+			   TEE_ALG_RSASSA_PKCS1_V1_5_SHA224),
 	MECHA_CONV_NOPARAM(CKM_SHA256_RSA_PKCS,
-			TEE_ALG_RSASSA_PKCS1_V1_5_SHA256),
+			   TEE_ALG_RSASSA_PKCS1_V1_5_SHA256),
 	MECHA_CONV_NOPARAM(CKM_SHA384_RSA_PKCS,
-			TEE_ALG_RSASSA_PKCS1_V1_5_SHA384),
+			   TEE_ALG_RSASSA_PKCS1_V1_5_SHA384),
 	MECHA_CONV_NOPARAM(CKM_SHA512_RSA_PKCS,
-			TEE_ALG_RSASSA_PKCS1_V1_5_SHA512),
+			   TEE_ALG_RSASSA_PKCS1_V1_5_SHA512),
 
 	MECHA_CONV_ITEM(CKM_SHA1_RSA_PKCS_PSS, pss_sha1_params,
 			TEE_ALG_RSASSA_PKCS1_PSS_MGF1_SHA1),
@@ -5478,12 +5478,11 @@ void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot)
 				tv->params.rsa.salt_len;
 		}
 
-
 		Do_ADBG_BeginSubCase(c, "Asym Crypto case %d algo 0x%x line %d (%s)",
 				     (int)n, (unsigned int)tv->algo,
-				     (int)tv->line, ckm2str(mechanism.mechanism));
+				     (int)tv->line,
+				     ckm2str(mechanism.mechanism));
 		subcase = 1;
-
 
 		/*
 		 * When signing or verifying we're working with the hash of
