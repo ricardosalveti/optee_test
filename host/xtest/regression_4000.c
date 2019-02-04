@@ -6213,7 +6213,7 @@ static CK_ATTRIBUTE cktest_keygen_noparams_rsa_pub[] = {
 static CK_ATTRIBUTE cktest_keygen_noparams_rsa_priv[] = {
 	{ CKA_CLASS, &(CK_OBJECT_CLASS){CKO_PRIVATE_KEY},
 			sizeof(CK_OBJECT_CLASS) },
-	{ CKA_KEY_TYPE,	&(CK_KEY_TYPE){CKK_RSA}, sizeof(CK_KEY_TYPE) },
+	/* Intentionally not key type: libsks will guess the key type */
 	{ CKA_SIGN, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 	{ CKA_DECRYPT, &(CK_BBOOL){CK_TRUE}, sizeof(CK_BBOOL) },
 };
@@ -6286,15 +6286,18 @@ static void cktest_keygen_noparams(ADBG_Case_t *c, CK_SLOT_ID slot)
 		Do_ADBG_BeginSubCase(c, "Generate %s key",
 					keygen_noparams_key_types[n].name);
 
-
 		rv = C_OpenSession(slot, session_flags, NULL, 0, &session);
 		if (!ADBG_EXPECT_CK_OK(c, rv))
 			return;
 
-
-		if (set_ck_attr(ck_attrs, ck_count, CKA_KEY_TYPE,
-				(void **)&ck_key_type, sizeof(ck_key_type)))
-			goto broken_test;
+		/* libsks guesses the key type in RSA or EC cases */
+		if (ck_key_type != CKK_RSA) {
+			if (set_ck_attr(ck_attrs, ck_count, CKA_KEY_TYPE,
+					(void **)&ck_key_type,
+					sizeof(ck_key_type))) {
+				goto broken_test;
+			}
+		}
 
 		for (key_size = min_size; key_size <= max_size;
 		     key_size += quanta) {
