@@ -21,20 +21,20 @@ include(GNUInstallDirs)
 macro(EMBED_8100FILE prefix infile)
 	add_custom_command(
 		OUTPUT  regression_8100_${prefix}.h
-		COMMAND ../../scripts/file_to_c.py --inf ${infile}
+		COMMAND ${OPTEE_TEST_ROOT_DIR}/scripts/file_to_c.py --inf ${infile}
 	--out ${CMAKE_CURRENT_BINARY_DIR}/regression_8100_${prefix}.h
 	--name regression_8100_${prefix}
-		DEPENDS ../../scripts/file_to_c.py ${infile}
+		DEPENDS ${OPTEE_TEST_ROOT_DIR}/scripts/file_to_c.py ${infile}
 	)
 
 	set_property(SOURCE regression_8100.c APPEND PROPERTY OBJECT_DEPENDS
 		     ${CMAKE_CURRENT_BINARY_DIR}/regression_8100_${prefix}.h)
 endmacro(EMBED_8100FILE)
 
-EMBED_8100FILE(ca_crt ../../cert/ca.crt)
-EMBED_8100FILE(mid_crt ../../cert/mid.crt)
-EMBED_8100FILE(my_crt ../../cert/my.crt)
-EMBED_8100FILE(my_csr ../../cert/my.csr)
+EMBED_8100FILE(ca_crt ${OPTEE_TEST_ROOT_DIR}/cert/ca.crt)
+EMBED_8100FILE(mid_crt ${OPTEE_TEST_ROOT_DIR}/cert/mid.crt)
+EMBED_8100FILE(my_crt ${OPTEE_TEST_ROOT_DIR}/cert/my.crt)
+EMBED_8100FILE(my_csr ${OPTEE_TEST_ROOT_DIR}/cert/my.csr)
 
 set (SRC
 	adbg/src/adbg_case.c
@@ -48,12 +48,14 @@ set (SRC
 	benchmark_2000.c
 	regression_1000.c
 	regression_4000.c
+	regression_4100.c
 	regression_5000.c
 	regression_6000.c
 	regression_7000.c
 	regression_8000.c
 	regression_8100.c
 	sha_perf.c
+	stats.c
 	xtest_helpers.c
 	xtest_main.c
 	xtest_test.c
@@ -93,6 +95,7 @@ target_include_directories(${PROJECT_NAME}
 	PRIVATE adbg/include
 	PRIVATE xml/include
 	PRIVATE ${OPTEE_TEST_SDK}/host_include
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 target_link_libraries (${PROJECT_NAME}
