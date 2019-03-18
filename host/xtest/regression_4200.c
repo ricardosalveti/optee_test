@@ -389,7 +389,7 @@ static void xtest_tee_test_4202(ADBG_Case_t *c)
 			goto out;
 
 		if (level)
-			Do_ADBG_Log("Token #%u mechanism capabilities:", i);
+			Do_ADBG_Log("Token #%lu mechanism capabilities:", i);
 
 		for (j = 0; j < mecha_count; j++) {
 			CK_MECHANISM_TYPE type = mecha_types[j];
@@ -1606,7 +1606,7 @@ static void xtest_tee_test_4208(ADBG_Case_t *c)
 
 	for (n = 0; n < ARRAY_SIZE(cktest_allowed_valid); n++) {
 
-		Do_ADBG_BeginSubCase(c, "valid usage #%u", n);
+		Do_ADBG_BeginSubCase(c, "valid usage #%lu", n);
 
 		rv = cipher_init_final(c, session,
 					cktest_allowed_valid[n].attr_key,
@@ -1624,7 +1624,7 @@ static void xtest_tee_test_4208(ADBG_Case_t *c)
 	}
 
 	for (n = 0; n < ARRAY_SIZE(cktest_allowed_invalid); n++) {
-		Do_ADBG_BeginSubCase(c, "invalid usage #%u", n);
+		Do_ADBG_BeginSubCase(c, "invalid usage #%lu", n);
 
 		rv = cipher_init_final(c, session,
 					cktest_allowed_invalid[n].attr_key,

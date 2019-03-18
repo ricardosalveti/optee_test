@@ -2087,12 +2087,12 @@ void run_xtest_tee_test_4211(ADBG_Case_t *c, CK_SLOT_ID slot)
 		CK_ULONG attr_count = 0;
 
 		if (get_ck_mac_case(n, &mechanism, &ck_key, &attr_count)) {
-			Do_ADBG_Log("Skip case %u algo 0x%x",
+			Do_ADBG_Log("Skip case %lu algo 0x%x",
 				    n, (unsigned int)mac_cases[n].algo);
 			continue;
 		}
 
-		Do_ADBG_BeginSubCase(c, "MAC case %u algo 0x%x (%s)",
+		Do_ADBG_BeginSubCase(c, "MAC case %lu algo 0x%x (%s)",
 				     n, (unsigned int)mac_cases[n].algo,
 				     ckm2str(mechanism->mechanism));
 
@@ -3099,13 +3099,13 @@ void run_xtest_tee_test_4210(ADBG_Case_t *c, CK_SLOT_ID slot)
 		CK_ULONG attr_count = 0;
 
 		if (get_ck_ciph_case(n, &mechanism, &ck_key, &attr_count)) {
-			Do_ADBG_Log("Skip case %u algo 0x%x line %u",
+			Do_ADBG_Log("Skip case %lu algo 0x%x line %u",
 				    n, (unsigned int)ciph_cases[n].algo,
 				    (unsigned int)ciph_cases[n].line);
 			continue;
 		}
 
-		Do_ADBG_BeginSubCase(c, "Cipher case %u algo 0x%x (%s) line %u",
+		Do_ADBG_BeginSubCase(c, "Cipher case %lu algo 0x%x (%s) line %u",
 					n, (unsigned int)ciph_cases[n].algo,
 					ckm2str(mechanism->mechanism),
 					(unsigned int)ciph_cases[n].line);
