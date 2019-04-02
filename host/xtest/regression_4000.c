@@ -5273,8 +5273,6 @@ static CK_ATTRIBUTE __unused cktest_ec_key_pub_attr[] = {
 	{ CKA_LABEL, label_ec_pub, sizeof(label_ec_pub) - 1 },
 	{ CKA_EC_PARAMS, (void *)NULL, 0 },		// to fill at runtime
 	{ CKA_EC_POINT, (void *)NULL, 0 },		// to fill at runtime
-	{ CKA_VENDOR_EC_POINT_Y, (void *)NULL, 0 },	// to fill at runtime
-	{ CKA_VENDOR_EC_POINT_X, (void *)NULL, 0 },	// to fill at runtime
 };
 
 CK_UTF8CHAR label_ec_priv[] = "Generic EC private key for testing";
@@ -5289,8 +5287,7 @@ CK_ATTRIBUTE cktest_ec_key_priv_attr[] = {
 	{ CKA_SUBJECT, (void *)NULL, 0 },
 	{ CKA_EC_PARAMS, (void *)NULL, 0 },
 	{ CKA_VALUE, (void *)NULL, 0 },
-	{ CKA_VENDOR_EC_POINT_Y, (void *)NULL, 0 },	// to fill at runtime
-	{ CKA_VENDOR_EC_POINT_X, (void *)NULL, 0 },	// to fill at runtime
+	{ CKA_EC_POINT, (void *)NULL, 0 },		// to fill at runtime
 };
 
 #define CKTEST_RSA_PSS_PARAMS(_label, _algo, _mgf)	\
@@ -5444,6 +5441,9 @@ void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot)
 	size_t out_size;
 	uint8_t out_enc[512];
 	size_t out_enc_size;
+	size_t ecpoint_size = 0;
+	size_t qsize = 0;
+	uint8_t *ecpoint;
 	size_t n;
 	int subcase = 0;
 	/* Compute hash through cryp test TA (until SKS supports hashes */
@@ -5645,34 +5645,49 @@ void run_xtest_tee_test_4217(ADBG_Case_t *c, CK_SLOT_ID slot)
 					tv->params.ecdsa.private,
 					tv->params.ecdsa.private_len);
 
-			SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_VENDOR_EC_POINT_X,
-				       tv->params.ecdsa.public_x,
-				       tv->params.ecdsa.public_x_len);
-			SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_VENDOR_EC_POINT_Y,
-				       tv->params.ecdsa.public_y,
-				       tv->params.ecdsa.public_y_len);
+			/* Assume input data is correct (x/y same len) */
+			qsize = 1 + 2 * tv->params.ecdsa.public_x_len;
+			if (qsize >= 0x80) {
+				Do_ADBG_Log("DER long definitive form not supported");
+				ADBG_EXPECT_TRUE(c, false);
+				goto out;
+			}
+			ecpoint_size = qsize + 2;
+			ecpoint = malloc(ecpoint_size);
+			memset(ecpoint, 0 , ecpoint_size);
+			/* Uncompressed form */
+			ecpoint[0] = 0x04;
+			ecpoint[1] = qsize & 0x7f;
+			ecpoint[2] = 0x04;
+			memcpy(ecpoint + 3, tv->params.ecdsa.public_x,
+					tv->params.ecdsa.public_x_len);
+			memcpy(ecpoint + 3 + tv->params.ecdsa.public_x_len,
+					tv->params.ecdsa.public_y,
+					tv->params.ecdsa.public_y_len);
+
+			SET_CK_ATTR(cktest_ec_key_priv_attr, CKA_EC_POINT,
+						ecpoint, ecpoint_size);
 
 			rv = C_CreateObject(session, cktest_ec_key_priv_attr,
 					    ARRAY_SIZE(cktest_ec_key_priv_attr),
 					    &priv_key_handle);
-			if (!ADBG_EXPECT_CK_OK(c, rv))
+			if (!ADBG_EXPECT_CK_OK(c, rv)) {
+				free(ecpoint);
 				goto out;
+			}
 
 			ck_ec_params_attr_from_tee_algo(
 					cktest_ec_key_pub_attr,
 					ARRAY_SIZE(cktest_ec_key_pub_attr),
 					tv->algo);
 
-			SET_CK_ATTR(cktest_ec_key_pub_attr, CKA_VENDOR_EC_POINT_X,
-				       tv->params.ecdsa.public_x,
-				       tv->params.ecdsa.public_x_len);
-			SET_CK_ATTR(cktest_ec_key_pub_attr, CKA_VENDOR_EC_POINT_Y,
-				       tv->params.ecdsa.public_y,
-				       tv->params.ecdsa.public_y_len);
+			SET_CK_ATTR(cktest_ec_key_pub_attr, CKA_EC_POINT,
+						ecpoint, ecpoint_size);
 
 			rv = C_CreateObject(session, cktest_ec_key_pub_attr,
 					    ARRAY_SIZE(cktest_ec_key_pub_attr),
 					    &pub_key_handle);
+			free(ecpoint);
 			if (!ADBG_EXPECT_CK_OK(c, rv))
 				goto out;
 
