@@ -880,9 +880,9 @@ struct ecc_params {
 
 static struct ecc_params ecc_params_der[] = {
 	ECC_PARAMS("NIST SECP192R1", nist_secp192r1_der, CKM_ECDSA),
-	//ECC_PARAMS("NIST SECP224R1", nist_secp224r1_der, CKM_ECDSA),
-	//ECC_PARAMS("NIST SECP256R1", nist_secp256r1_der, CKM_ECDSA),
-	//ECC_PARAMS("NIST SECP384R1", nist_secp384r1_der, CKM_ECDSA),
+	ECC_PARAMS("NIST SECP224R1", nist_secp224r1_der, CKM_ECDSA),
+	ECC_PARAMS("NIST SECP256R1", nist_secp256r1_der, CKM_ECDSA),
+	ECC_PARAMS("NIST SECP384R1", nist_secp384r1_der, CKM_ECDSA),
 	//ECC_PARAMS("NIST SECP521R1", nist_secp521r1_der, CKM_ECDSA),
 };
 
