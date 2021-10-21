@@ -430,13 +430,19 @@ static void xtest_tee_test_1004(ADBG_Case_t *c)
 					   TA_CRYPT_CMD_AES256ECB_ENC,
 					   TA_CRYPT_CMD_AES256ECB_DEC };
 
+	printf("RSALVETI: %s:%d\n", __FUNCTION__, __LINE__);
+
 	if (!ADBG_EXPECT_TEEC_SUCCESS(c, xtest_teec_open_session(
 					      &session, &crypt_user_ta_uuid,
 					      NULL, &ret_orig)))
 		return;
 
+	printf("RSALVETI: %s:%d\n", __FUNCTION__, __LINE__);
+
 	/* Run the "complete crypto test suite" */
 	xtest_crypto_test(&cs);
+
+	printf("RSALVETI: %s:%d\n", __FUNCTION__, __LINE__);
 
 	TEEC_CloseSession(&session);
 }
